@@ -32,12 +32,10 @@ const Home = () => {
   ];
 
   const clients = [
-    "Korle Bu Teaching Hospital",
-    "37 Military Hospital",
-    "St John’s Hospital",
-    "Wesley Clinic",
-    "Tamale Teaching Hospital",
-    "Ridge Hospital"
+    "St Johns hospital",
+    "Wesley clinic",
+    "Danpong hospital",
+    "St Moses hospital"
   ];
 
   return (
@@ -188,9 +186,9 @@ const Home = () => {
       <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <h2 className="text-3xl font-bold text-[#0B3C5D] mb-12">Trusted by Leading Healthcare Institutions</h2>
-          <div className="flex flex-wrap justify-center gap-12 opacity-40 grayscale">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 opacity-60 grayscale">
             {clients.map((client, idx) => (
-              <div key={idx} className="text-xl font-bold text-gray-400 border-2 border-gray-100 px-6 py-2 rounded-lg">
+              <div key={idx} className="text-lg font-bold text-gray-500 border-2 border-gray-100 px-6 py-4 rounded-xl flex items-center justify-center text-center">
                 {client}
               </div>
             ))}

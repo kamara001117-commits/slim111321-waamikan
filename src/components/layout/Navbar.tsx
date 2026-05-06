@@ -288,7 +288,7 @@ export const Footer = () => {
               <li><Link to="/help" className="hover:text-white transition-colors">Help Center</Link></li>
               <li><span className="block italic mt-4 text-xs opacity-50">Email: Waamikan@gmail.com</span></li>
               <li><span className="block italic mt-1 text-xs opacity-50">Tel: +233(0) 20 898 7185</span></li>
-              <li><span className="block italic mt-1 text-xs opacity-50">Tel: +233(0) 24 210 9859</span></li>
+              <li><span className="block italic mt-1 text-xs opacity-50">Tel: 0537212475</span></li>
             </ul>
           </div>
         </div>
