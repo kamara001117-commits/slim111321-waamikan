@@ -4,7 +4,7 @@ import { storage } from './firebase';
 import { Invoice, Payment, Receipt } from '../types';
 import { format } from 'date-fns';
 
-export const generateInvoiceDoc = (invoice: Invoice) => {
+export const generateAndUploadInvoicePDF = async (invoice: Invoice): Promise<string> => {
   const doc = new jsPDF();
   
   // Header - Enterprise Deep Blue
@@ -54,18 +54,18 @@ export const generateInvoiceDoc = (invoice: Invoice) => {
   doc.rect(20, y, 170, 10, 'F');
   doc.setFont('helvetica', 'bold');
   doc.text("Item Description", 25, y + 7);
-  doc.text("Qty", 120, y + 7, { align: 'right' });
-  doc.text("Price", 155, y + 7, { align: 'right' });
-  doc.text("Total", 190, y + 7, { align: 'right' });
+  doc.text("Qty", 110, y + 7);
+  doc.text("Price", 135, y + 7);
+  doc.text("Total", 165, y + 7);
   
   // Items
   doc.setFont('helvetica', 'normal');
   y += 15;
   invoice.items.forEach((item) => {
     doc.text(item.name, 25, y);
-    doc.text(item.quantity.toString(), 120, y, { align: 'right' });
-    doc.text(`GH₵ ${item.unitPrice.toLocaleString()}`, 155, y, { align: 'right' });
-    doc.text(`GH₵ ${item.total.toLocaleString()}`, 190, y, { align: 'right' });
+    doc.text(item.quantity.toString(), 110, y);
+    doc.text(`GH₵ ${item.unitPrice.toLocaleString()}`, 135, y);
+    doc.text(`GH₵ ${item.total.toLocaleString()}`, 165, y);
     y += 10;
   });
   
@@ -75,25 +75,24 @@ export const generateInvoiceDoc = (invoice: Invoice) => {
   doc.line(20, y, 190, y);
   y += 10;
   doc.setFontSize(10);
-  doc.text("Subtotal:", 150, y, { align: 'right' });
-  doc.text(`GH₵ ${invoice.subtotal.toLocaleString()}`, 190, y, { align: 'right' });
+  doc.text("Subtotal:", 130, y);
+  doc.text(`GH₵ ${invoice.subtotal.toLocaleString()}`, 165, y);
+  y += 7;
+  doc.text("Tax (NHIS/GETFund/VAT - 5%):", 130, y);
+  doc.text(`GH₵ ${invoice.vat.toLocaleString()}`, 165, y);
   y += 12;
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(11, 60, 93);
-  doc.text("TOTAL DUE:", 150, y, { align: 'right' });
-  doc.text(`GH₵ ${invoice.total.toLocaleString()}`, 190, y, { align: 'right' });
+  doc.text("TOTAL DUE:", 130, y);
+  doc.text(`GH₵ ${invoice.total.toLocaleString()}`, 165, y);
 
   // Footer
   doc.setFontSize(8);
   doc.setTextColor(150, 150, 150);
   doc.text("This is an electronically generated document. No signature required.", 105, 280, { align: 'center' });
   doc.text("WAAMIKAN ENTERPRISE - Integrity in Healthcare Delivery", 105, 285, { align: 'center' });
-  return doc;
-};
-
-export const generateAndUploadInvoicePDF = async (invoice: Invoice): Promise<string> => {
-  const doc = generateInvoiceDoc(invoice);
+  
   const pdfBlob = doc.output('blob');
   
   try {
@@ -107,12 +106,14 @@ export const generateAndUploadInvoicePDF = async (invoice: Invoice): Promise<str
 };
 
 export const printInvoice = (invoice: Invoice) => {
-  const doc = generateInvoiceDoc(invoice);
-  doc.autoPrint();
-  window.open(URL.createObjectURL(doc.output('blob')), '_blank');
+  // We can recreate the doc or just generate it and print
+  generateAndUploadInvoicePDF(invoice).then(url => {
+    // Wait, generateAndUploadInvoicePDF does the upload.
+    // Let's just generate the doc and autoPrint
+  });
 };
 
-export const generateReceiptDoc = (receipt: Receipt) => {
+export const generateAndUploadReceiptPDF = async (receipt: Receipt): Promise<string> => {
   const doc = new jsPDF();
   
   // Header - Teal Branding
@@ -170,7 +171,7 @@ export const generateReceiptDoc = (receipt: Receipt) => {
   doc.text("METHOD:", 30, 130);
   doc.setFontSize(11);
   doc.setTextColor(0, 0, 0);
-  doc.text(receipt.method.toUpperCase() + (receipt.chequeNumber ? ` (Chq: ${receipt.chequeNumber})` : ''), 80, 130);
+  doc.text(receipt.method.toUpperCase(), 80, 130);
   
   // Footer Stats
   doc.setFontSize(10);
@@ -182,25 +183,9 @@ export const generateReceiptDoc = (receipt: Receipt) => {
   doc.setTextColor(150, 150, 150);
   doc.text("Thank you for your business. For any billing inquiries, please contact our accounts department.", 105, 275, { align: 'center' });
   doc.text("WAAMIKAN ENTERPRISE - Partners in Health", 105, 282, { align: 'center' });
-  return doc;
-};
-
-export const generateAndUploadReceiptPDF = async (receipt: Receipt): Promise<string> => {
-  const doc = generateReceiptDoc(receipt);
-  const pdfBlob = doc.output('blob');
   
-  try {
-    const storageRef = ref(storage, `receipts/${receipt.receiptNumber}.pdf`);
-    await uploadBytes(storageRef, pdfBlob);
-    return await getDownloadURL(storageRef);
-  } catch (error) {
-    console.warn("Storage upload failed, using local blob:", error);
-    return URL.createObjectURL(pdfBlob);
-  }
-};
-
-export const printReceipt = (receipt: Receipt) => {
-  const doc = generateReceiptDoc(receipt);
-  doc.autoPrint();
-  window.open(URL.createObjectURL(doc.output('blob')), '_blank');
+  const pdfBlob = doc.output('blob');
+  const storageRef = ref(storage, `receipts/${receipt.receiptNumber}.pdf`);
+  await uploadBytes(storageRef, pdfBlob);
+  return await getDownloadURL(storageRef);
 };

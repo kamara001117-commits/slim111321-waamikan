@@ -33,14 +33,15 @@ import {
   Edit,
   Eye,
   CreditCard,
-  History
+  History,
+  Printer
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
 import { onAuthStateChanged } from 'firebase/auth';
 import { recordPayment } from '@/src/lib/invoiceService';
 import jsPDF from 'jspdf';
-import { generateAndUploadInvoicePDF, generateAndUploadReceiptPDF } from '@/src/lib/documentService';
+import { generateAndUploadInvoicePDF, generateAndUploadReceiptPDF, printInvoice, printReceipt } from '@/src/lib/documentService';
 import { logActivity } from '@/src/lib/activity';
 import { Receipt } from '@/src/types';
 
@@ -488,6 +489,13 @@ const Invoices = () => {
                       <button className="p-2.5 text-gray-200 cursor-not-allowed"><Download size={18} /></button>
                     )}
                     <button 
+                      onClick={() => printInvoice(inv)}
+                      className="p-2.5 bg-gray-50 text-gray-400 hover:text-[#0B3C5D] rounded-xl"
+                      title="Print Invoice"
+                    >
+                      <Printer size={18} />
+                    </button>
+                    <button 
                       onClick={() => {
                         setSelectedInvoice(inv);
                         setIsViewModalOpen(true);
@@ -710,6 +718,15 @@ const Invoices = () => {
                               >
                                 <Download size={18} />
                               </button>
+                              {invoiceReceipts.find(r => r.paymentId === payment.id) && (
+                                <button
+                                  onClick={() => printReceipt(invoiceReceipts.find(r => r.paymentId === payment.id)!)}
+                                  className="p-2 bg-white rounded-lg shadow-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-all border border-gray-100"
+                                  title="Print Receipt"
+                                >
+                                  <Printer size={18} />
+                                </button>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -738,16 +755,25 @@ const Invoices = () => {
                               <p className="text-[10px] text-blue-700 opacity-70">{selectedInvoice.invoiceNumber}.pdf</p>
                             </div>
                           </div>
-                          <a 
-                            href={selectedInvoice.pdfUrl} 
-                            target="_blank" 
-                            rel="noreferrer"
-                            className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
-                            title="Download Invoice"
-                          >
-                            <Download size={16} />
-                          </a>
-                        </div>
+                            <div className="flex items-center gap-2">
+                              <button 
+                                onClick={() => printInvoice(selectedInvoice)}
+                                className="p-2 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-colors shadow-sm"
+                                title="Print Invoice"
+                              >
+                                <Printer size={16} />
+                              </button>
+                              <a 
+                                href={selectedInvoice.pdfUrl} 
+                                target="_blank" 
+                                rel="noreferrer"
+                                className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                                title="Download Invoice"
+                              >
+                                <Download size={16} />
+                              </a>
+                            </div>
+                          </div>
                       ) : (
                         <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-2xl border border-gray-100 italic text-gray-400 text-xs">
                           No PDF generated yet.
@@ -769,15 +795,24 @@ const Invoices = () => {
                                 </p>
                               </div>
                             </div>
-                            <a 
-                              href={receipt.pdfUrl} 
-                              target="_blank" 
-                              rel="noreferrer"
-                              className="p-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm"
-                              title="Download Receipt"
-                            >
-                              <Download size={16} />
-                            </a>
+                            <div className="flex items-center gap-2">
+                              <button 
+                                onClick={() => printReceipt(receipt)}
+                                className="p-2 bg-white text-green-600 rounded-lg hover:bg-green-50 transition-colors shadow-sm"
+                                title="Print Receipt"
+                              >
+                                <Printer size={16} />
+                              </button>
+                              <a 
+                                href={receipt.pdfUrl} 
+                                target="_blank" 
+                                rel="noreferrer"
+                                className="p-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm"
+                                title="Download Receipt"
+                              >
+                                <Download size={16} />
+                              </a>
+                            </div>
                           </div>
                         ))
                       ) : (
