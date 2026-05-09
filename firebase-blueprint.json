@@ -1,0 +1,175 @@
+{
+  "entities": {
+    "user": {
+      "title": "User",
+      "description": "System user with role-based access",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "role": { "type": "string", "enum": ["super_admin", "admin", "staff"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "product": {
+      "title": "Product",
+      "description": "Medical supply product in inventory",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string", "enum": ["Consumables", "Imaging", "Equipment", "Furniture", "Life Support"] },
+        "description": { "type": "string" },
+        "price": { "type": "number" },
+        "stock": { "type": "integer" },
+        "sku": { "type": "string" },
+        "image": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "category", "price", "stock"]
+    },
+    "customer": {
+      "title": "Customer",
+      "description": "Hospital or clinic client",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "contactPerson": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" },
+        "type": { "type": "string", "enum": ["public", "private"] },
+        "totalSpent": { "type": "number" },
+        "invoiceCount": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "email"]
+    },
+    "invoice": {
+      "title": "Invoice",
+      "description": "Sales invoice for medical supplies",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "invoiceNumber": { "type": "string" },
+        "customerId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "items": {
+          "type": "array",
+          "items": { "type": "object" }
+        },
+        "subtotal": { "type": "number" },
+        "vat": { "type": "number" },
+        "total": { "type": "number" },
+        "paidAmount": { "type": "number" },
+        "remainingBalance": { "type": "number" },
+        "status": { "type": "string", "enum": ["draft", "sent", "paid", "partial", "overdue"] },
+        "dueDate": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "pdfUrl": { "type": "string" }
+      },
+      "required": ["invoiceNumber", "customerId", "items", "total", "status"]
+    },
+    "payment": {
+      "title": "Payment",
+      "description": "Payment record for an invoice",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "invoiceId": { "type": "string" },
+        "invoiceNumber": { "type": "string" },
+        "amount": { "type": "number" },
+        "method": { "type": "string" },
+        "reference": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "recordedBy": { "type": "string" }
+      },
+      "required": ["invoiceId", "amount", "date", "method"]
+    },
+    "receipt": {
+      "title": "Receipt",
+      "description": "Official receipt for a payment",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "receiptNumber": { "type": "string" },
+        "paymentId": { "type": "string" },
+        "invoiceId": { "type": "string" },
+        "amount": { "type": "number" },
+        "pdfUrl": { "type": "string" }
+      }
+    },
+    "request": {
+      "title": "CRM Request",
+      "description": "Contact form or service request",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "hospital": { "type": "string" },
+        "message": { "type": "string" },
+        "status": { "type": "string", "enum": ["new", "in_progress", "responded", "closed"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "notes": { "type": "array", "items": { "type": "object" } }
+      },
+      "required": ["name", "email", "message", "status"]
+    },
+    "activityLog": {
+      "title": "Activity Log",
+      "description": "System audits",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "action": { "type": "string" },
+        "type": { "type": "string" },
+        "timestamp": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "user",
+      "description": "User profiles and roles"
+    },
+    "/products/{productId}": {
+      "schema": "product",
+      "description": "Medical supply products"
+    },
+    "/customers/{customerId}": {
+      "schema": "customer",
+      "description": "Client database"
+    },
+    "/invoices/{invoiceId}": {
+      "schema": "invoice",
+      "description": "Billing and invoices"
+    },
+    "/payments/{paymentId}": {
+      "schema": "payment",
+      "description": "Payment history"
+    },
+    "/receipts/{receiptId}": {
+      "schema": "receipt",
+      "description": "Payment receipts"
+    },
+    "/requests/{requestId}": {
+      "schema": "request",
+      "description": "CRM and lead tracking"
+    },
+    "/logs/{logId}": {
+      "schema": "activityLog",
+      "description": "Audit trails"
+    },
+    "/counters/{counterId}": {
+      "schema": "object",
+      "description": "System counters for sequences"
+    }
+  }
+}

@@ -1,0 +1,92 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helper Functions ---
+    function isSignedIn() { return request.auth != null; }
+    
+    // Efficiently get user role without recursive lookups
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+    
+    function hasRole(role) { 
+      return isSignedIn() && getUserRole() == role; 
+    }
+    function isSuperAdmin() { return hasRole('super_admin'); }
+    function isAdmin() { return hasRole('admin') || isSuperAdmin(); }
+    function isStaff() { return hasRole('staff') || isAdmin(); }
+    
+    function isValidId(id) { 
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
+    }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    // --- Collection Rules ---
+
+    // USERS: Profile management
+    match /users/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isStaff());
+      allow write: if isSuperAdmin();
+      allow create: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    // COUNTERS: System sequence counters
+    match /counters/{counterId} {
+      allow read: if isStaff();
+      allow update: if isStaff();
+    }
+
+    // PRODUCTS: Public visibility, controlled updates
+    match /products/{productId} {
+      allow read: if true; // Public catalog
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (isStaff() && incoming().diff(existing()).affectedKeys().hasOnly(['stock', 'updatedAt']));
+    }
+
+    // CUSTOMERS: Staff and above
+    match /customers/{customerId} {
+      allow read: if isStaff();
+      allow write: if isStaff();
+    }
+
+    // INVOICES: Financial tracking
+    match /invoices/{invoiceId} {
+      allow read: if isStaff();
+      allow create: if isStaff();
+      allow delete: if isAdmin();
+      allow update: if isAdmin() || (isStaff() && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'pdfUrl', 'paidAmount', 'remainingBalance', 'updatedAt']));
+    }
+
+    // PAYMENTS: Recorded by staff, deleted by Admin
+    match /payments/{paymentId} {
+      allow read: if isStaff();
+      allow create: if isStaff();
+      allow delete: if isAdmin();
+    }
+
+    // RECEIPTS: Public (with link) or Internal
+    match /receipts/{receiptId} {
+      allow read: if true; // Accessed via secure URL/PDF
+      allow create: if isStaff();
+      allow delete: if isAdmin();
+    }
+
+    // REQUESTS: Public lead creation
+    match /requests/{requestId} {
+      allow create: if true; // Public contact form
+      allow read, update, delete: if isStaff();
+    }
+
+    // LOGS: Audit trails
+    match /logs/{logId} {
+      allow read: if isStaff();
+      allow create: if isSignedIn(); // System logs
+    }
+  }
+}
