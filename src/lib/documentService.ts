@@ -19,8 +19,8 @@ export const generateAndUploadInvoicePDF = async (invoice: Invoice): Promise<str
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   doc.text("Healthcare Solutions | Medical Imaging | Consumables", 20, 30);
-  doc.text("37 Military Hospital Road, Accra, Ghana", 20, 36);
-  doc.text("Tel: +233 24 000 0000 | Email: Waamikan@gmail.com", 20, 42);
+  doc.text("Oyibi, Accra Ghana", 20, 36);
+  doc.text("Tel: +233 53 721 2475 / +233 20 898 7185 | Email: Waamikan@gmail.com", 20, 42);
 
   // Status Badge
   const statusColor = invoice.status === 'paid' ? [0, 150, 0] : [200, 0, 0];
@@ -111,8 +111,8 @@ export const generateAndUploadReceiptPDF = async (receipt: Receipt): Promise<str
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   doc.text("WAAMIKAN ENTERPRISE | Payment Acknowledgement", 20, 32);
-  doc.text("37 Military Hospital Road, Accra, Ghana", 20, 37);
-  doc.text("Tel: +233 24 000 0000 | Email: Waamikan@gmail.com", 20, 42);
+  doc.text("Oyibi, Accra Ghana", 20, 37);
+  doc.text("Tel: +233 53 721 2475 / +233 20 898 7185 | Email: Waamikan@gmail.com", 20, 42);
   
   // Receipt Info
   doc.setTextColor(31, 122, 140);
@@ -188,8 +188,8 @@ const generatePDFInternal = (type: string, data: any) => {
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.text("Healthcare Solutions | Medical Imaging | Consumables", 20, 30);
-  doc.text("37 Military Hospital Road, Accra, Ghana", 20, 36);
-  doc.text("Tel: +233 24 000 0000 | Email: Waamikan@gmail.com", 20, 42);
+  doc.text("Oyibi, Accra Ghana", 20, 36);
+  doc.text("Tel: +233 53 721 2475 / +233 20 898 7185 | Email: Waamikan@gmail.com", 20, 42);
 
   // Document Title & Meta (Right Aligned)
   doc.setTextColor(255, 255, 255);
