@@ -355,7 +355,7 @@ const Inventory = () => {
                     <span className="text-sm font-bold text-gray-700">{product.stock}</span>
                   </div>
                 </td>
-                <td className="px-6 py-4 text-sm font-bold text-[#0B3C5D]">GH₵ {product.price.toLocaleString()}</td>
+                <td className="px-6 py-4 text-sm font-bold text-[#0B3C5D]">GHC {product.price.toLocaleString()}</td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex justify-end gap-2">
                     <button 
@@ -511,7 +511,7 @@ const Inventory = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-gray-400 uppercase">Price (GH₵)</label>
+                      <label className="text-xs font-bold text-gray-400 uppercase">Price (GHC)</label>
                       <input 
                         required
                         type="number" 

@@ -117,18 +117,16 @@ const DocumentCenter = () => {
                           {format(new Date(doc.createdAt), 'MMM dd, yyyy • HH:mm')}
                        </td>
                        <td className="px-8 py-6 font-black text-gray-800">
-                          GH₵ {(doc.total || doc.amount || 0).toLocaleString()}
+                          GHC {(doc.total || doc.amount || 0).toLocaleString()}
                        </td>
                        <td className="px-8 py-6 text-right">
                           <div className="flex justify-end gap-2">
-                             <a 
-                               href={doc.pdfUrl} 
-                               target="_blank" 
-                               rel="noreferrer"
-                               className="p-3 bg-gray-50 text-gray-400 rounded-xl hover:bg-blue-50 hover:text-blue-600 transition-all"
+                             <button 
+                               onClick={() => downloadDocument(doc.type, doc)}
+                               className="p-3 bg-gray-50 text-gray-400 rounded-xl hover:bg-blue-50 hover:text-blue-600 transition-all font-black"
                              >
                                 <Download size={18} />
-                             </a>
+                             </button>
                              <button 
                                 onClick={() => printDocument(doc.type, doc)}
                                 className="p-3 bg-gray-50 text-gray-400 rounded-xl hover:bg-[#EAB308] hover:text-white transition-all"

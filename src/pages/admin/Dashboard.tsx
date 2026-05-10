@@ -177,9 +177,9 @@ const Dashboard = () => {
   };
 
   const cards = [
-    { name: 'Total Revenue', value: `GH₵ ${stats.totalRevenue.toLocaleString()}`, icon: <TrendingUp className="text-green-600" />, trend: '+12.5%', color: 'bg-green-50' },
-    { name: 'Outstanding Payments', value: `GH₵ ${stats.outstandingPayments.toLocaleString()}`, icon: <Clock className="text-orange-600" />, trend: 'Action Required', color: 'bg-orange-50' },
-    { name: 'Overdue Total', value: `GH₵ ${stats.overdueTotal.toLocaleString()}`, icon: <AlertCircle className="text-red-600" />, trend: 'Critical', color: 'bg-red-50' },
+    { name: 'Total Revenue', value: `GHC ${stats.totalRevenue.toLocaleString()}`, icon: <TrendingUp className="text-green-600" />, trend: '+12.5%', color: 'bg-green-50' },
+    { name: 'Outstanding Payments', value: `GHC ${stats.outstandingPayments.toLocaleString()}`, icon: <Clock className="text-orange-600" />, trend: 'Action Required', color: 'bg-orange-50' },
+    { name: 'Overdue Total', value: `GHC ${stats.overdueTotal.toLocaleString()}`, icon: <AlertCircle className="text-red-600" />, trend: 'Critical', color: 'bg-red-50' },
     { name: 'Collection Rate', value: `${stats.paidVsUnpaid.toFixed(1)}%`, icon: <CheckCircle className="text-blue-600" />, trend: 'Paid vs Unpaid', color: 'bg-blue-50' },
   ];
 
@@ -346,7 +346,7 @@ const Dashboard = () => {
                <div className="space-y-4 pt-4">
                   <div className="flex justify-between items-end border-b border-white/10 pb-4">
                      <span className="text-xs font-bold uppercase tracking-widest opacity-60">Avg. Order Value</span>
-                     <span className="text-xl font-black">GH₵ 12,450</span>
+                     <span className="text-xl font-black">GHC 12,450</span>
                   </div>
                   <div className="flex justify-between items-end border-b border-white/10 pb-4">
                      <span className="text-xs font-bold uppercase tracking-widest opacity-60">Lead Converstion</span>

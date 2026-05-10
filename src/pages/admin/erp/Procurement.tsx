@@ -284,7 +284,7 @@ const Procurement = () => {
                    </div>
                    <div className="space-y-1">
                       <p className="text-xs font-bold text-gray-400">Current Balance</p>
-                      <p className="text-2xl font-black text-red-500">GH₵ {supplier.balance.toLocaleString()}</p>
+                      <p className="text-2xl font-black text-red-500">GHC {supplier.balance.toLocaleString()}</p>
                    </div>
                    <div className="flex gap-2">
                       <span className="text-[9px] font-black bg-gray-50 px-3 py-1 rounded-full uppercase tracking-widest text-gray-400 border border-gray-100">
@@ -346,7 +346,7 @@ const Procurement = () => {
                         {format(new Date(po.date), 'MMM dd, yyyy')}
                       </td>
                       <td className="px-8 py-6 text-right font-black text-gray-800">
-                        GH₵ {po.total.toLocaleString()}
+                        GHC {po.total.toLocaleString()}
                       </td>
                       <td className="px-8 py-6">
                          <div className="flex justify-center">
@@ -409,7 +409,7 @@ const Procurement = () => {
                     <tr key={q.id}>
                       <td className="px-8 py-6 font-mono text-sm font-bold text-blue-600">{q.quoteNumber}</td>
                       <td className="px-8 py-6 font-black uppercase">{q.supplierName}</td>
-                      <td className="px-8 py-6 text-right font-black">GH₵ {q.total?.toLocaleString()}</td>
+                      <td className="px-8 py-6 text-right font-black">GHC {q.total?.toLocaleString()}</td>
                       <td className="px-8 py-6 text-center italic text-xs text-gray-400">
                         {q.status === 'Converted' ? 'Converted to PO' : 'Requesting pricing'}
                       </td>
@@ -496,7 +496,7 @@ const Procurement = () => {
                     <tr key={dn.id}>
                       <td className="px-8 py-6 font-mono text-sm font-bold text-orange-600">{dn.noteNumber}</td>
                       <td className="px-8 py-6 font-black uppercase tracking-tight">{dn.supplierName}</td>
-                      <td className="px-8 py-6 text-right font-black text-orange-600">- GH₵ {dn.amount?.toLocaleString()}</td>
+                      <td className="px-8 py-6 text-right font-black text-orange-600">- GHC {dn.amount?.toLocaleString()}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -537,7 +537,7 @@ const Procurement = () => {
                         {format(new Date(bill.dueDate), 'MMM dd, yyyy')}
                       </td>
                       <td className="px-8 py-6 text-right font-black text-[#0B3C5D]">
-                        GH₵ {bill.total.toLocaleString()}
+                        GHC {bill.total.toLocaleString()}
                       </td>
                       <td className="px-8 py-6">
                          <div className="flex justify-center">
@@ -598,7 +598,7 @@ const Procurement = () => {
                 <option value="">Select Supplier</option>
                 {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
              </select>
-             <input type="number" placeholder="Estimated Total (GH₵)" className="w-full px-6 py-4 bg-gray-50 rounded-2xl outline-none" onChange={e => setNewQuote({...newQuote, total: Number(e.target.value)})} />
+             <input type="number" placeholder="Estimated Total (GHC)" className="w-full px-6 py-4 bg-gray-50 rounded-2xl outline-none" onChange={e => setNewQuote({...newQuote, total: Number(e.target.value)})} />
              <button onClick={handleAddQuote} className="w-full py-5 bg-[#0B3C5D] text-white font-black rounded-2xl">Send Request</button>
           </div>
         </div>
@@ -616,7 +616,7 @@ const Procurement = () => {
                 <option value="">Select Supplier</option>
                 {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
              </select>
-             <input type="number" placeholder="PO Total (GH₵)" className="w-full px-6 py-4 bg-gray-50 rounded-2xl outline-none" onChange={e => setNewPO({...newPO, total: Number(e.target.value)})} />
+             <input type="number" placeholder="PO Total (GHC)" className="w-full px-6 py-4 bg-gray-50 rounded-2xl outline-none" onChange={e => setNewPO({...newPO, total: Number(e.target.value)})} />
              <button onClick={handleAddPO} className="w-full py-5 bg-[#0B3C5D] text-white font-black rounded-2xl">Generate PO</button>
           </div>
         </div>
@@ -760,7 +760,7 @@ const Procurement = () => {
              <div className="flex justify-between items-end bg-gray-100 p-8 rounded-3xl">
                 <div>
                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Grand Total Payable</p>
-                   <p className="text-4xl font-black text-[#0B3C5D]">GH₵ {calculateBillTotal().toLocaleString()}</p>
+                   <p className="text-4xl font-black text-[#0B3C5D]">GHC {calculateBillTotal().toLocaleString()}</p>
                 </div>
                 <button onClick={handleAddBill} className="px-12 py-5 bg-[#0B3C5D] text-white font-black rounded-2xl shadow-xl shadow-blue-900/10 hover:bg-black transition-all">
                    COMMIT TO ACCOUNTS PAYABLE
@@ -782,7 +782,7 @@ const Procurement = () => {
                 <option value="">Select Supplier</option>
                 {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
              </select>
-             <input type="number" placeholder="Net Adjustment (GH₵)" className="w-full px-6 py-4 bg-gray-50 rounded-2xl outline-none" onChange={e => setNewDebitNote({...newDebitNote, amount: Number(e.target.value)})} />
+             <input type="number" placeholder="Net Adjustment (GHC)" className="w-full px-6 py-4 bg-gray-50 rounded-2xl outline-none" onChange={e => setNewDebitNote({...newDebitNote, amount: Number(e.target.value)})} />
              <input placeholder="Reason / Reference Bill #" className="w-full px-6 py-4 bg-gray-50 rounded-2xl outline-none" onChange={e => setNewDebitNote({...newDebitNote, reason: e.target.value})} />
              <button onClick={handleAddDebitNote} className="w-full py-5 bg-orange-600 text-white font-black rounded-2xl">Issue Adjustment</button>
           </div>

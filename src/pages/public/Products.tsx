@@ -80,7 +80,7 @@ const Products = () => {
                    <h3 className="text-xl font-bold text-[#0B3C5D] group-hover:text-[#1F7A8C] transition-colors">{prod.name}</h3>
                    <p className="text-gray-400 text-sm line-clamp-2 leading-relaxed">{prod.description}</p>
                    <div className="pt-4 flex justify-between items-center border-t border-gray-50">
-                     <p className="text-xl font-black text-[#EAB308]">GH₵ {prod.price.toLocaleString()}</p>
+                     <p className="text-xl font-black text-[#EAB308]">GHC {prod.price.toLocaleString()}</p>
                      <button 
                        onClick={(e) => {
                          e.stopPropagation();
@@ -176,7 +176,7 @@ const Products = () => {
                 <div className="flex items-center justify-between gap-6 pt-8">
                   <div>
                     <p className="text-xs font-bold text-gray-400 uppercase mb-1">Unit Price</p>
-                    <p className="text-3xl font-black text-[#EAB308]">GH₵ {selectedProduct.price.toLocaleString()}</p>
+                    <p className="text-3xl font-black text-[#EAB308]">GHC {selectedProduct.price.toLocaleString()}</p>
                   </div>
                   <button 
                     onClick={() => {

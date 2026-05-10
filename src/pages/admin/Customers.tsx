@@ -123,7 +123,7 @@ const Customers = () => {
               </div>
               <div className="text-right">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total Spent</p>
-                <p className="text-lg font-black text-[#0B3C5D]">GH₵ {(customer.totalSpent || 0).toLocaleString()}</p>
+                <p className="text-lg font-black text-[#0B3C5D]">GHC {(customer.totalSpent || 0).toLocaleString()}</p>
               </div>
             </div>
             
@@ -313,7 +313,7 @@ const Customers = () => {
 
                        <div className="bg-[#1F7A8C]/5 rounded-3xl p-6 border border-[#1F7A8C]/10 space-y-2">
                           <p className="text-[10px] font-bold text-[#1F7A8C] uppercase tracking-widest text-center">Lifetime Revenue</p>
-                          <p className="text-3xl font-black text-[#1F7A8C] text-center">GH₵ {(selectedCustomer.totalSpent || 0).toLocaleString()}</p>
+                          <p className="text-3xl font-black text-[#1F7A8C] text-center">GHC {(selectedCustomer.totalSpent || 0).toLocaleString()}</p>
                        </div>
                     </div>
 
@@ -335,7 +335,7 @@ const Customers = () => {
                                   </div>
                                </div>
                                <div className="text-right">
-                                  <p className="font-black text-gray-800">GH₵ {inv.total.toLocaleString()}</p>
+                                  <p className="font-black text-gray-800">GHC {inv.total.toLocaleString()}</p>
                                   <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-lg ${
                                     inv.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
                                   }`}>

@@ -79,7 +79,7 @@ const Cart = () => {
 
                 <div className="text-center sm:text-right min-w-[120px]">
                   <p className="text-xs text-gray-400 uppercase font-bold mb-1">Price</p>
-                  <p className="text-lg font-black text-[#EAB308]">GH₵ {(item.price * item.quantity).toLocaleString()}</p>
+                  <p className="text-lg font-black text-[#EAB308]">GHC {(item.price * item.quantity).toLocaleString()}</p>
                 </div>
 
                 <button 
@@ -100,15 +100,15 @@ const Cart = () => {
             <div className="space-y-4 mb-8">
               <div className="flex justify-between text-blue-100">
                 <span>Subtotal</span>
-                <span className="font-bold">GH₵ {cartTotal.toLocaleString()}</span>
+                <span className="font-bold">GHC {cartTotal.toLocaleString()}</span>
               </div>
               <div className="flex justify-between text-blue-100">
                 <span>Tax (Est.)</span>
-                <span className="font-bold">GH₵ 0.00</span>
+                <span className="font-bold">GHC 0.00</span>
               </div>
               <div className="pt-4 border-t border-white/10 flex justify-between items-end">
                 <span className="text-lg">Total</span>
-                <span className="text-3xl font-black text-[#EAB308]">GH₵ {cartTotal.toLocaleString()}</span>
+                <span className="text-3xl font-black text-[#EAB308]">GHC {cartTotal.toLocaleString()}</span>
               </div>
             </div>
 

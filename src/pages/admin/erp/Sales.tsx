@@ -149,7 +149,7 @@ const Sales = () => {
                     }}
                   >
                     <option value="">Select Product</option>
-                    {products.map(p => <option key={p.id} value={p.id}>{p.name} - GH₵ {p.price}</option>)}
+                    {products.map(p => <option key={p.id} value={p.id}>{p.name} - GHC {p.price}</option>)}
                   </select>
                 </div>
 
@@ -159,9 +159,9 @@ const Sales = () => {
                        <div key={idx} className="flex justify-between items-center bg-white p-3 rounded-xl shadow-sm">
                           <div>
                             <p className="text-xs font-black text-[#0B3C5D] uppercase">{item.name}</p>
-                            <p className="text-[10px] text-gray-400 font-bold">{item.quantity} x GH₵ {item.unitPrice}</p>
+                            <p className="text-[10px] text-gray-400 font-bold">{item.quantity} x GHC {item.unitPrice}</p>
                           </div>
-                          <p className="text-xs font-black text-[#EAB308]">GH₵ {item.total}</p>
+                          <p className="text-xs font-black text-[#EAB308]">GHC {item.total}</p>
                        </div>
                      ))}
                   </div>
@@ -169,7 +169,7 @@ const Sales = () => {
 
                 <div className="flex justify-between items-center px-4 py-4 bg-gray-50 rounded-2xl">
                    <p className="text-sm font-black text-gray-400 uppercase tracking-widest">Grand Total</p>
-                   <p className="text-xl font-black text-[#0B3C5D]">GH₵ {newDoc.total.toLocaleString()}</p>
+                   <p className="text-xl font-black text-[#0B3C5D]">GHC {newDoc.total.toLocaleString()}</p>
                 </div>
              </div>
              <button 
@@ -231,7 +231,7 @@ const Sales = () => {
                          {format(new Date(doc.date), 'MMM dd, yyyy')}
                        </td>
                        <td className="px-8 py-6 text-right font-black text-gray-800">
-                         GH₵ {doc.total.toLocaleString()}
+                         GHC {doc.total.toLocaleString()}
                        </td>
                        <td className="px-8 py-6">
                           <div className="flex justify-center">

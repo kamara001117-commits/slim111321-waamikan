@@ -141,7 +141,7 @@ export const recordSupplierBill = async (billData: Omit<SupplierBill, 'id' | 'cr
       type: 'purchase',
       targetId: billId,
       timestamp: now,
-      details: `Total: GH₵ ${fullBill.total.toLocaleString()}`
+      details: `Total: GHC ${fullBill.total.toLocaleString()}`
     });
 
     return billId;

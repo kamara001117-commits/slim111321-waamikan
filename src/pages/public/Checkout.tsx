@@ -311,7 +311,7 @@ const Checkout = () => {
                       <p className="font-bold text-[#0B3C5D] text-sm leading-tight">{item.name}</p>
                       <p className="text-xs text-gray-400">Qty: {item.quantity}</p>
                     </div>
-                    <p className="font-black text-[#0B3C5D] text-sm whitespace-nowrap">GH₵ {(item.price * item.quantity).toLocaleString()}</p>
+                    <p className="font-black text-[#0B3C5D] text-sm whitespace-nowrap">GHC {(item.price * item.quantity).toLocaleString()}</p>
                   </div>
                 ))}
               </div>
@@ -319,15 +319,15 @@ const Checkout = () => {
               <div className="pt-6 border-t border-gray-50 space-y-3">
                 <div className="flex justify-between text-sm text-gray-400 font-bold uppercase tracking-widest">
                   <span>Subtotal</span>
-                  <span>GH₵ {cartTotal.toLocaleString()}</span>
+                  <span>GHC {cartTotal.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-sm text-gray-400 font-bold uppercase tracking-widest">
                   <span>VAT (5%)</span>
-                  <span>GH₵ {(cartTotal * 0.05).toLocaleString()}</span>
+                  <span>GHC {(cartTotal * 0.05).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between pt-4 border-t border-gray-100">
                   <span className="text-lg font-black text-[#0B3C5D]">Total</span>
-                  <span className="text-2xl font-black text-[#EAB308]">GH₵ {(cartTotal * 1.05).toLocaleString()}</span>
+                  <span className="text-2xl font-black text-[#EAB308]">GHC {(cartTotal * 1.05).toLocaleString()}</span>
                 </div>
               </div>
            </div>

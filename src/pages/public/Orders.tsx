@@ -109,7 +109,7 @@ const Orders = () => {
                 <div className="flex flex-wrap gap-8 pt-2">
                    <div className="space-y-1">
                      <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Total Amount</p>
-                     <p className="font-black text-[#0B3C5D]">GH₵ {inv.total.toLocaleString()}</p>
+                     <p className="font-black text-[#0B3C5D]">GHC {inv.total.toLocaleString()}</p>
                    </div>
                    <div className="space-y-1">
                      <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Items</p>

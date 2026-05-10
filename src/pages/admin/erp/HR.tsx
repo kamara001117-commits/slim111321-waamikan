@@ -250,12 +250,12 @@ const HR = () => {
                         <td className="px-8 py-6">
                            <p className="font-black text-gray-800 uppercase tracking-tight">{pay.employeeName}</p>
                            <div className="flex gap-4 text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest">
-                              <span>All.: GH₵ {pay.allowances}</span>
-                              <span>Ded.: GH₵ {pay.deductions}</span>
+                              <span>All.: GHC {pay.allowances}</span>
+                              <span>Ded.: GHC {pay.deductions}</span>
                            </div>
                         </td>
-                        <td className="px-8 py-6 text-right font-bold text-gray-400">GH₵ {pay.baseSalary.toLocaleString()}</td>
-                        <td className="px-8 py-6 text-right font-black text-[#0B3C5D]">GH₵ {pay.netPay.toLocaleString()}</td>
+                        <td className="px-8 py-6 text-right font-bold text-gray-400">GHC {pay.baseSalary.toLocaleString()}</td>
+                        <td className="px-8 py-6 text-right font-black text-[#0B3C5D]">GHC {pay.netPay.toLocaleString()}</td>
                         <td className="px-8 py-6">
                            <div className="flex justify-center">
                               <span className={`text-[9px] font-black px-4 py-1 rounded-full uppercase tracking-widest border ${
@@ -298,7 +298,7 @@ const HR = () => {
                          <p className="font-bold text-gray-800">{claim.category}</p>
                          <p className="text-[10px] text-gray-400 font-medium italic">{claim.description}</p>
                       </td>
-                      <td className="px-8 py-6 text-right font-black text-[#0B3C5D]">GH₵ {claim.amount.toLocaleString()}</td>
+                      <td className="px-8 py-6 text-right font-black text-[#0B3C5D]">GHC {claim.amount.toLocaleString()}</td>
                       <td className="px-8 py-6">
                          <div className="flex justify-center gap-2">
                            {claim.status === 'Pending' ? (
@@ -384,7 +384,7 @@ const HR = () => {
                 </select>
                 <input 
                   type="number" 
-                  placeholder="Monthly Salary (GH₵)" 
+                  placeholder="Monthly Salary (GHC)" 
                   className="w-full px-6 py-4 bg-gray-50 rounded-2xl outline-none focus:ring-2 focus:ring-[#EAB308]"
                   value={newEmployee.salary || ''}
                   onChange={e => setNewEmployee({...newEmployee, salary: Number(e.target.value)})}
@@ -420,7 +420,7 @@ const HR = () => {
                   {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.firstName} {emp.lastName}</option>)}
                 </select>
                 <input placeholder="Expense Category (e.g. Travel)" className="w-full px-6 py-4 bg-gray-50 rounded-2xl outline-none" onChange={e => setNewClaim({...newClaim, category: e.target.value})} />
-                <input type="number" placeholder="Amount (GH₵)" className="w-full px-6 py-4 bg-gray-50 rounded-2xl outline-none" onChange={e => setNewClaim({...newClaim, total: Number(e.target.value)})} />
+                <input type="number" placeholder="Amount (GHC)" className="w-full px-6 py-4 bg-gray-50 rounded-2xl outline-none" onChange={e => setNewClaim({...newClaim, total: Number(e.target.value)})} />
                 <textarea placeholder="Description" className="w-full px-6 py-4 bg-gray-50 rounded-2xl outline-none min-h-[100px]" onChange={e => setNewClaim({...newClaim, description: e.target.value})} />
              </div>
              <button onClick={handleCreateClaim} className="w-full py-5 bg-[#0B3C5D] text-white font-black rounded-2xl shadow-xl">Submit Claim</button>

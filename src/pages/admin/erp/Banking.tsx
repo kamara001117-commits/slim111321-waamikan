@@ -96,7 +96,7 @@ const Banking = () => {
              </div>
              <div className="space-y-1 relative z-10">
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{account.name}</p>
-                <h3 className="text-3xl font-black text-[#0B3C5D]">GH₵ {account.balance.toLocaleString()}</h3>
+                <h3 className="text-3xl font-black text-[#0B3C5D]">GHC {account.balance.toLocaleString()}</h3>
                 <p className="font-mono text-xs text-gray-400 mt-4 tracking-tighter">**** **** {account.accountNumber.slice(-4)}</p>
              </div>
              <div className="absolute top-0 right-0 w-48 h-48 bg-gray-50 rounded-full -mr-24 -mt-24 group-hover:scale-110 transition-transform duration-700"></div>
@@ -150,7 +150,7 @@ const Banking = () => {
                     </div>
                   </td>
                   <td className={`px-8 py-5 text-right font-black ${tx.type === 'deposit' ? 'text-green-600' : 'text-red-600'}`}>
-                    {tx.type === 'deposit' ? '+' : '-'} GH₵ {tx.amount.toLocaleString()}
+                    {tx.type === 'deposit' ? '+' : '-'} GHC {tx.amount.toLocaleString()}
                   </td>
                   <td className="px-8 py-5">
                     <div className="flex justify-center">
@@ -191,7 +191,7 @@ const Banking = () => {
               <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100 mb-8">
                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Transaction Detail</p>
                  <h4 className="text-xl font-black text-[#0B3C5D]">{matchingTx.description}</h4>
-                 <p className="text-2xl font-black text-[#1F7A8C] mt-2">GH₵ {matchingTx.amount.toLocaleString()}</p>
+                 <p className="text-2xl font-black text-[#1F7A8C] mt-2">GHC {matchingTx.amount.toLocaleString()}</p>
                  <p className="text-xs font-bold text-gray-400 mt-1 italic">{format(new Date(matchingTx.date), 'MMMM dd, yyyy')}</p>
               </div>
 
@@ -207,7 +207,7 @@ const Banking = () => {
                          <span className="text-[10px] font-bold text-gray-400 uppercase">{match.type}</span>
                       </div>
                       <h6 className="font-black text-[#0B3C5D] uppercase">{match.reason}</h6>
-                      <p className="text-[#1F7A8C] font-black text-xl mt-2">GH₵ {match.amount.toLocaleString()}</p>
+                      <p className="text-[#1F7A8C] font-black text-xl mt-2">GHC {match.amount.toLocaleString()}</p>
                       
                       <button 
                         onClick={async () => {
@@ -269,7 +269,7 @@ const Banking = () => {
                 </select>
                 <input 
                   type="number" 
-                  placeholder="Opening Balance (GH₵)" 
+                  placeholder="Opening Balance (GHC)" 
                   className="w-full px-6 py-4 bg-gray-50 rounded-2xl outline-none focus:ring-2 focus:ring-[#0B3C5D]"
                   value={newAccount.balance || ''}
                   onChange={e => setNewAccount({...newAccount, balance: Number(e.target.value)})}

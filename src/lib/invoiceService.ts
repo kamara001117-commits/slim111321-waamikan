@@ -71,7 +71,7 @@ export const createInvoice = async (invoiceData: Omit<Invoice, 'id' | 'invoiceNu
   const pdfUrl = await generateAndUploadInvoicePDF(finalInvoice);
   await updateDoc(doc(db, 'invoices', docRef.id), { pdfUrl });
 
-  await logActivity('invoice', `Created ${isWebOrder ? 'web order' : 'invoice'} ${invoiceNumber}`, docRef.id, `Total: GH₵ ${total}`);
+  await logActivity('invoice', `Created ${isWebOrder ? 'web order' : 'invoice'} ${invoiceNumber}`, docRef.id, `Total: GHC ${total}`);
 
   return finalInvoice;
 };
@@ -216,7 +216,7 @@ export const recordPayment = async (
     // Update the existing receipt document with the PDF URL
     await updateDoc(doc(db, 'receipts', result.receiptId), { pdfUrl });
     
-    await logActivity('payment', `Recorded payment of GH₵ ${result.amount}`, result.invoice.id, `Invoice: ${result.invoice.invoiceNumber}`);
+    await logActivity('payment', `Recorded payment of GHC ${result.amount}`, result.invoice.id, `Invoice: ${result.invoice.invoiceNumber}`);
     
     // Add Accounting Entry
     await recordPaymentAccounting(result.paymentId, result.invoice.id, result.amount, result.method);

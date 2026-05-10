@@ -118,13 +118,13 @@ const Reports = () => {
               <section className="space-y-4">
                  <div className="flex justify-between items-center bg-gray-50 px-6 py-4 rounded-2xl border border-gray-100">
                     <h4 className="text-sm font-black text-gray-800 uppercase tracking-widest">REVENUE</h4>
-                    <span className="font-mono font-black text-[#0B3C5D]">GH₵ {revenue.toLocaleString()}</span>
+                    <span className="font-mono font-black text-[#0B3C5D]">GHC {revenue.toLocaleString()}</span>
                  </div>
                  <div className="pl-6 space-y-2">
                     {accounts.filter(a => a.type === 'Revenue').map(acc => (
                       <div key={acc.id} className="flex justify-between text-sm italic text-gray-500">
                          <span>{acc.name}</span>
-                         <span className="font-mono">GH₵ {acc.balance.toLocaleString()}</span>
+                         <span className="font-mono">GHC {acc.balance.toLocaleString()}</span>
                       </div>
                     ))}
                  </div>
@@ -134,13 +134,13 @@ const Reports = () => {
               <section className="space-y-4">
                  <div className="flex justify-between items-center bg-gray-50 px-6 py-4 rounded-2xl border border-gray-100">
                     <h4 className="text-sm font-black text-gray-800 uppercase tracking-widest">OPERATING EXPENSES</h4>
-                    <span className="font-mono font-black text-red-500">(GH₵ {expenses.toLocaleString()})</span>
+                    <span className="font-mono font-black text-red-500">(GHC {expenses.toLocaleString()})</span>
                  </div>
                  <div className="pl-6 space-y-2">
                     {accounts.filter(a => a.type === 'Expense').map(acc => (
                       <div key={acc.id} className="flex justify-between text-sm italic text-gray-500">
                          <span>{acc.name}</span>
-                         <span className="font-mono">GH₵ {acc.balance.toLocaleString()}</span>
+                         <span className="font-mono">GHC {acc.balance.toLocaleString()}</span>
                       </div>
                     ))}
                  </div>
@@ -151,7 +151,7 @@ const Reports = () => {
                  <h4 className="text-xl font-black text-[#0B3C5D] uppercase tracking-tight">NET PROFIT / LOSS</h4>
                  <div className="text-right">
                     <span className={`text-3xl font-black ${netProfit >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                       GH₵ {netProfit.toLocaleString()}
+                       GHC {netProfit.toLocaleString()}
                     </span>
                     <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Pre-tax consolidated earnings</p>
                  </div>
@@ -173,12 +173,12 @@ const Reports = () => {
                        {assets.map(acc => (
                          <div key={acc.id} className="flex justify-between items-center border-b border-gray-50 pb-2">
                             <span className="text-sm font-bold text-gray-700 uppercase tracking-tight">{acc.name}</span>
-                            <span className="font-mono text-sm font-black text-gray-800">GH₵ {acc.balance.toLocaleString()}</span>
+                            <span className="font-mono text-sm font-black text-gray-800">GHC {acc.balance.toLocaleString()}</span>
                          </div>
                        ))}
                        <div className="flex justify-between pt-4 font-black text-[#0B3C5D]">
                           <span>TOTAL ASSETS</span>
-                          <span>GH₵ {assets.reduce((sum, a) => sum + a.balance, 0).toLocaleString()}</span>
+                          <span>GHC {assets.reduce((sum, a) => sum + a.balance, 0).toLocaleString()}</span>
                        </div>
                     </div>
                  </div>
@@ -190,7 +190,7 @@ const Reports = () => {
                           {liabilities.map(acc => (
                             <div key={acc.id} className="flex justify-between items-center border-b border-gray-50 pb-2">
                                <span className="text-sm font-bold text-gray-700 uppercase tracking-tight">{acc.name}</span>
-                               <span className="font-mono text-sm font-black text-gray-800">GH₵ {acc.balance.toLocaleString()}</span>
+                               <span className="font-mono text-sm font-black text-gray-800">GHC {acc.balance.toLocaleString()}</span>
                             </div>
                           ))}
                        </div>
@@ -199,19 +199,19 @@ const Reports = () => {
                           {equity.map(acc => (
                             <div key={acc.id} className="flex justify-between items-center border-b border-gray-50 pb-2">
                                <span className="text-sm font-bold text-gray-700 uppercase tracking-tight">{acc.name}</span>
-                               <span className="font-mono text-sm font-black text-gray-800">GH₵ {acc.balance.toLocaleString()}</span>
+                               <span className="font-mono text-sm font-black text-gray-800">GHC {acc.balance.toLocaleString()}</span>
                             </div>
                           ))}
                           {/* Net Profit adds to Retained Earnings / Equity */}
                           <div className="flex justify-between items-center border-b border-gray-50 pb-4">
                              <span className="text-sm font-black text-green-600 uppercase tracking-tight italic">Net Profit (Current Period)</span>
-                             <span className="font-mono text-sm font-black text-green-600">GH₵ {netProfit.toLocaleString()}</span>
+                             <span className="font-mono text-sm font-black text-green-600">GHC {netProfit.toLocaleString()}</span>
                           </div>
                        </div>
 
                        <div className="flex justify-between pt-4 font-black text-[#0B3C5D] border-t-2 border-[#0B3C5D]">
                           <span>TOTAL L & EQ</span>
-                          <span>GH₵ {(liabilities.reduce((sum, a) => sum + a.balance, 0) + equity.reduce((sum, e) => sum + e.balance, 0) + netProfit).toLocaleString()}</span>
+                          <span>GHC {(liabilities.reduce((sum, a) => sum + a.balance, 0) + equity.reduce((sum, e) => sum + e.balance, 0) + netProfit).toLocaleString()}</span>
                        </div>
                     </div>
                  </div>
@@ -237,7 +237,7 @@ const Reports = () => {
                            {customers.map(c => (
                               <tr key={c.id}>
                                  <td className="py-4 font-black">{c.name}</td>
-                                 <td className="py-4 text-right">GH₵ {c.balance > 0 ? c.balance.toLocaleString() : 0}</td>
+                                 <td className="py-4 text-right">GHC {c.balance > 0 ? c.balance.toLocaleString() : 0}</td>
                                  <td className="py-4 text-right text-gray-400">0</td>
                                  <td className="py-4 text-right text-gray-400">0</td>
                               </tr>
@@ -261,7 +261,7 @@ const Reports = () => {
                            {suppliers.map(s => (
                               <tr key={s.id}>
                                  <td className="py-4 font-black">{s.name}</td>
-                                 <td className="py-4 text-right text-red-600">GH₵ {s.balance?.toLocaleString()}</td>
+                                 <td className="py-4 text-right text-red-600">GHC {s.balance?.toLocaleString()}</td>
                               </tr>
                            ))}
                         </tbody>

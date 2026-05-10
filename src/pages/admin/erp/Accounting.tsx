@@ -120,7 +120,7 @@ const Accounting = () => {
             <div className="p-3 bg-blue-50 rounded-2xl text-blue-600"><TrendingUp size={24} /></div>
             <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Assets</span>
           </div>
-          <h3 className="text-2xl font-black text-[#0B3C5D]">GH₵ {totalAssets.toLocaleString()}</h3>
+          <h3 className="text-2xl font-black text-[#0B3C5D]">GHC {totalAssets.toLocaleString()}</h3>
           <p className="text-xs text-gray-400 mt-1 font-medium">Total Resource Value</p>
         </div>
 
@@ -129,7 +129,7 @@ const Accounting = () => {
             <div className="p-3 bg-red-50 rounded-2xl text-red-600"><ArrowRightLeft size={24} /></div>
             <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Liabilities</span>
           </div>
-          <h3 className="text-2xl font-black text-[#0B3C5D]">GH₵ {totalLiabilities.toLocaleString()}</h3>
+          <h3 className="text-2xl font-black text-[#0B3C5D]">GHC {totalLiabilities.toLocaleString()}</h3>
           <p className="text-xs text-gray-400 mt-1 font-medium">Total Obligations</p>
         </div>
 
@@ -139,7 +139,7 @@ const Accounting = () => {
               <div className="p-3 bg-white/10 rounded-2xl text-white"><Calculator size={24} /></div>
               <span className="text-[10px] font-black text-white/50 uppercase tracking-widest">Net Worth</span>
             </div>
-            <h3 className="text-2xl font-black">GH₵ {netWorth.toLocaleString()}</h3>
+            <h3 className="text-2xl font-black">GHC {netWorth.toLocaleString()}</h3>
             <p className="text-xs text-white/50 mt-1 font-medium">Equity / Capital</p>
           </div>
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16"></div>
@@ -215,7 +215,7 @@ const Accounting = () => {
                        </span>
                     </td>
                     <td className="px-8 py-5 text-right font-black text-gray-800">
-                      GH₵ {account.balance.toLocaleString()}
+                      GHC {account.balance.toLocaleString()}
                     </td>
                   </tr>
                 ))}
@@ -245,8 +245,8 @@ const Accounting = () => {
                        <div key={idx} className="flex justify-between items-center text-sm">
                           <p className="font-bold text-gray-600 uppercase tracking-tight w-1/2">{line.accountName}</p>
                           <div className="flex gap-12 w-1/2 justify-end">
-                            {line.debit > 0 && <span className="text-green-600 font-black">DR GH₵ {line.debit.toLocaleString()}</span>}
-                            {line.credit > 0 && <span className="text-blue-600 font-black text-right min-w-[100px]">CR GH₵ {line.credit.toLocaleString()}</span>}
+                            {line.debit > 0 && <span className="text-green-600 font-black">DR GHC {line.debit.toLocaleString()}</span>}
+                            {line.credit > 0 && <span className="text-blue-600 font-black text-right min-w-[100px]">CR GHC {line.credit.toLocaleString()}</span>}
                           </div>
                        </div>
                      ))}
@@ -346,8 +346,8 @@ const Accounting = () => {
 
                <div className="pt-6 border-t border-gray-50 flex justify-between items-center">
                   <div className="text-[10px] font-black uppercase tracking-widest">
-                    <p className="text-gray-400">Total Debit: <span className="text-green-600">GH₵ {newEntry.lines.reduce((s,l) => s+l.debit, 0).toLocaleString()}</span></p>
-                    <p className="text-gray-400">Total Credit: <span className="text-blue-600">GH₵ {newEntry.lines.reduce((s,l) => s+l.credit, 0).toLocaleString()}</span></p>
+                    <p className="text-gray-400">Total Debit: <span className="text-green-600">GHC {newEntry.lines.reduce((s,l) => s+l.debit, 0).toLocaleString()}</span></p>
+                    <p className="text-gray-400">Total Credit: <span className="text-blue-600">GHC {newEntry.lines.reduce((s,l) => s+l.credit, 0).toLocaleString()}</span></p>
                   </div>
                   <button 
                     onClick={handlePostEntry}

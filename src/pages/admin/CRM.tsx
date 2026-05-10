@@ -292,7 +292,7 @@ const CRM = () => {
                     }`}>
                       {c.type === 'public' ? 'Govt Hospital' : 'Private Facility'}
                     </span>
-                    <p className="text-[10px] font-bold text-gray-300 uppercase mt-2">GH₵ {c.totalSpent?.toLocaleString() || 0} Spent</p>
+                    <p className="text-[10px] font-bold text-gray-300 uppercase mt-2">GHC {c.totalSpent?.toLocaleString() || 0} Spent</p>
                   </td>
                   <td className="px-10 py-6">
                     {c.lastContacted ? (

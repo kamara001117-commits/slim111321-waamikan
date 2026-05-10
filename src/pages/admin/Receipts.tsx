@@ -104,7 +104,7 @@ const Receipts = () => {
                   </td>
                   <td className="px-6 py-5 font-medium text-gray-700">{receipt.customerName}</td>
                   <td className="px-6 py-5">
-                    <span className="font-black text-[#1F7A8C]">GH₵ {receipt.amount.toLocaleString()}</span>
+                    <span className="font-black text-[#1F7A8C]">GHC {receipt.amount.toLocaleString()}</span>
                   </td>
                   <td className="px-6 py-5">
                     <span className="px-2 py-1 bg-gray-100 rounded text-[10px] font-bold text-gray-500 uppercase">{receipt.method}</span>
@@ -194,7 +194,7 @@ const Receipts = () => {
                     <div className="p-3 bg-white rounded-xl shadow-sm text-green-500"><Hash size={20} /></div>
                     <div>
                       <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Amount Paid</p>
-                      <p className="text-2xl font-black text-gray-800">GH₵ {selectedReceipt.amount.toLocaleString()}</p>
+                      <p className="text-2xl font-black text-gray-800">GHC {selectedReceipt.amount.toLocaleString()}</p>
                     </div>
                   </div>
 
@@ -213,7 +213,7 @@ const Receipts = () => {
                 <div className="pt-6 border-t border-gray-100 flex justify-between items-center">
                   <div>
                     <p className="text-[10px] text-gray-400 font-bold uppercase">Balance Remaining</p>
-                    <p className="font-black text-[#0B3C5D]">GH₵ {selectedReceipt.remainingBalance.toLocaleString()}</p>
+                    <p className="font-black text-[#0B3C5D]">GHC {selectedReceipt.remainingBalance.toLocaleString()}</p>
                   </div>
                   <a 
                     href={selectedReceipt.pdfUrl} 

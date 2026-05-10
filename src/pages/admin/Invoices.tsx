@@ -40,7 +40,7 @@ import { format } from 'date-fns';
 import { onAuthStateChanged } from 'firebase/auth';
 import { recordPayment, createInvoice } from '@/src/lib/invoiceService';
 import jsPDF from 'jspdf';
-import { generateAndUploadInvoicePDF, generateAndUploadReceiptPDF } from '@/src/lib/documentService';
+import { generateAndUploadInvoicePDF, generateAndUploadReceiptPDF, downloadDocument } from '@/src/lib/documentService';
 import { logActivity } from '@/src/lib/activity';
 import { Receipt } from '@/src/types';
 
@@ -229,7 +229,7 @@ const Invoices = () => {
         const pdfUrl = await generateAndUploadInvoicePDF(updatedInvoice);
         await updateDoc(doc(db, 'invoices', docId), { pdfUrl });
         
-        await logActivity('invoice', `Updated invoice ${invoiceNumber}`, docId, `New Total: GH₵ ${total}`);
+        await logActivity('invoice', `Updated invoice ${invoiceNumber}`, docId, `New Total: GHC ${total}`);
       } else {
         await createInvoice({
           customerId: formData.customerId,
@@ -273,33 +273,6 @@ const Invoices = () => {
     } finally {
       setProcessing(false);
     }
-  };
-
-  const downloadPDF = async (invoice: Invoice) => {
-    // Basic placeholder for PDF generation
-    // In a real app we'd render a hidden component then capture it
-    const doc = new jsPDF();
-    doc.setFontSize(22);
-    doc.text("WAAMIKAN ENTERPRISE", 20, 20);
-    doc.setFontSize(12);
-    doc.text(`Invoice: ${invoice.invoiceNumber}`, 20, 30);
-    doc.text(`Customer: ${invoice.customerName}`, 20, 40);
-    doc.text(`Date: ${format(new Date(invoice.createdAt), 'PPP')}`, 20, 50);
-    
-    let y = 70;
-    invoice.items.forEach((item, i) => {
-      doc.text(`${item.name} x ${item.quantity}`, 20, y);
-      doc.text(`GH₵ ${item.total.toLocaleString()}`, 160, y);
-      y += 10;
-    });
-    
-    doc.line(20, y, 190, y);
-    doc.text(`Subtotal: GH₵ ${invoice.subtotal.toLocaleString()}`, 120, y + 10);
-    doc.text(`VAT (5%): GH₵ ${invoice.vat.toLocaleString()}`, 120, y + 20);
-    doc.setFontSize(16);
-    doc.text(`Total: GH₵ ${invoice.total.toLocaleString()}`, 120, y + 35);
-    
-    doc.save(`${invoice.invoiceNumber}.pdf`);
   };
 
   const handleRegenerateReceipt = async (payment: Payment) => {
@@ -407,7 +380,7 @@ const Invoices = () => {
             <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl"><FileText size={24} /></div>
             <div>
               <p className="text-sm text-gray-400 font-bold uppercase tracking-widest">Total Billings</p>
-              <p className="text-2xl font-black text-[#0B3C5D]">GH₵ {invoices.reduce((s, i) => s + i.total, 0).toLocaleString()}</p>
+              <p className="text-2xl font-black text-[#0B3C5D]">GHC {invoices.reduce((s, i) => s + i.total, 0).toLocaleString()}</p>
             </div>
           </div>
         </div>
@@ -416,7 +389,7 @@ const Invoices = () => {
             <div className="p-4 bg-green-50 text-green-600 rounded-2xl"><CheckCircle size={24} /></div>
             <div>
               <p className="text-sm text-gray-400 font-bold uppercase tracking-widest">Received</p>
-              <p className="text-2xl font-black text-green-600">GH₵ {invoices.reduce((s, i) => s + (i.paidAmount || 0), 0).toLocaleString()}</p>
+              <p className="text-2xl font-black text-green-600">GHC {invoices.reduce((s, i) => s + (i.paidAmount || 0), 0).toLocaleString()}</p>
             </div>
           </div>
         </div>
@@ -425,7 +398,7 @@ const Invoices = () => {
             <div className="p-4 bg-red-50 text-red-600 rounded-2xl"><Clock size={24} /></div>
             <div>
               <p className="text-sm text-gray-400 font-bold uppercase tracking-widest">Outstanding</p>
-              <p className="text-2xl font-black text-red-600">GH₵ {invoices.reduce((s, i) => s + (i.remainingBalance || 0), 0).toLocaleString()}</p>
+              <p className="text-2xl font-black text-red-600">GHC {invoices.reduce((s, i) => s + (i.remainingBalance || 0), 0).toLocaleString()}</p>
             </div>
           </div>
         </div>
@@ -451,8 +424,8 @@ const Invoices = () => {
                   <p className="text-[10px] text-gray-300 font-bold">{format(new Date(inv.createdAt), 'PP')}</p>
                 </td>
                 <td className="px-8 py-5 text-sm font-bold text-gray-700">{inv.customerName}</td>
-                <td className="px-8 py-5 text-sm font-black text-gray-900">GH₵ {inv.total.toLocaleString()}</td>
-                <td className="px-8 py-5 text-sm font-black text-red-500">GH₵ {(inv.remainingBalance || 0).toLocaleString()}</td>
+                <td className="px-8 py-5 text-sm font-black text-gray-900">GHC {inv.total.toLocaleString()}</td>
+                <td className="px-8 py-5 text-sm font-black text-red-500">GHC {(inv.remainingBalance || 0).toLocaleString()}</td>
                 <td className="px-8 py-5">
                   <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
                     inv.status === 'paid' ? 'bg-green-100 text-green-700' : 
@@ -465,11 +438,12 @@ const Invoices = () => {
                 </td>
                 <td className="px-8 py-5 text-right">
                   <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {inv.pdfUrl ? (
-                      <a href={inv.pdfUrl} target="_blank" rel="noreferrer" className="p-2.5 bg-gray-50 text-gray-400 hover:text-[#0B3C5D] rounded-xl"><Download size={18} /></a>
-                    ) : (
-                      <button className="p-2.5 text-gray-200 cursor-not-allowed"><Download size={18} /></button>
-                    )}
+                    <button 
+                      onClick={() => downloadDocument('Invoice', inv)} 
+                      className="p-2.5 bg-gray-50 text-gray-400 hover:text-[#0B3C5D] rounded-xl"
+                    >
+                      <Download size={18} />
+                    </button>
                     <button 
                       onClick={() => {
                         setSelectedInvoice(inv);
@@ -577,7 +551,7 @@ const Invoices = () => {
                       </div>
                       <div className="col-span-2 space-y-1">
                         <label className="text-[10px] font-bold text-gray-400">Total</label>
-                        <div className="p-2 text-sm font-bold">GH₵ {item.total.toLocaleString()}</div>
+                        <div className="p-2 text-sm font-bold">GHC {item.total.toLocaleString()}</div>
                       </div>
                       <div className="col-span-1 pb-1">
                         <button 
@@ -595,11 +569,11 @@ const Invoices = () => {
                   <div className="w-80 space-y-3">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-400">Subtotal</span>
-                      <span className="font-bold">GH₵ {calculateTotals(formData.items).subtotal.toLocaleString()}</span>
+                      <span className="font-bold">GHC {calculateTotals(formData.items).subtotal.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-xl border-t border-gray-100 pt-3">
                       <span className="font-black text-[#0B3C5D]">TOTAL</span>
-                      <span className="font-black text-[#0B3C5D]">GH₵ {calculateTotals(formData.items).total.toLocaleString()}</span>
+                      <span className="font-black text-[#0B3C5D]">GHC {calculateTotals(formData.items).total.toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
@@ -641,15 +615,15 @@ const Invoices = () => {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
                     <p className="text-[10px] font-bold text-gray-400 uppercase">Total Amount</p>
-                    <p className="text-lg font-black text-[#0B3C5D]">GH₵ {selectedInvoice.total.toLocaleString()}</p>
+                    <p className="text-lg font-black text-[#0B3C5D]">GHC {selectedInvoice.total.toLocaleString()}</p>
                   </div>
                   <div className="p-4 bg-green-50 rounded-2xl border border-green-100">
                     <p className="text-[10px] font-bold text-green-400 uppercase">Paid So Far</p>
-                    <p className="text-lg font-black text-green-600">GH₵ {(selectedInvoice.paidAmount || 0).toLocaleString()}</p>
+                    <p className="text-lg font-black text-green-600">GHC {(selectedInvoice.paidAmount || 0).toLocaleString()}</p>
                   </div>
                   <div className="p-4 bg-orange-50 rounded-2xl border border-orange-100">
                     <p className="text-[10px] font-bold text-orange-400 uppercase">Remaining</p>
-                    <p className="text-lg font-black text-orange-600">GH₵ {(selectedInvoice.remainingBalance || 0).toLocaleString()}</p>
+                    <p className="text-lg font-black text-orange-600">GHC {(selectedInvoice.remainingBalance || 0).toLocaleString()}</p>
                   </div>
                   <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
                     <p className="text-[10px] font-bold text-gray-400 uppercase">Status</p>
@@ -674,7 +648,7 @@ const Invoices = () => {
                           </div>
                           <div className="flex items-center gap-4">
                             <div className="text-right border-r pr-4 border-gray-200">
-                              <p className="font-black text-gray-800">GH₵ {payment.amount.toLocaleString()}</p>
+                              <p className="font-black text-gray-800">GHC {payment.amount.toLocaleString()}</p>
                               <p className="text-[10px] text-gray-400">By {payment.recordedByName}</p>
                             </div>
                              <div className="flex flex-col gap-1">
@@ -748,7 +722,7 @@ const Invoices = () => {
                               <div>
                                 <p className="text-xs font-bold text-green-900">Receipt: {receipt.receiptNumber}</p>
                                 <p className="text-[10px] text-green-700 opacity-70">
-                                  {format(new Date(receipt.date), 'MMM d, yyyy')} • GH₵ {receipt.amount.toLocaleString()}
+                                  {format(new Date(receipt.date), 'MMM d, yyyy')} • GHC {receipt.amount.toLocaleString()}
                                 </p>
                               </div>
                             </div>
@@ -800,7 +774,7 @@ const Invoices = () => {
 
                 <div className="space-y-4">
                    <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Amount to Pay (GH₵)</label>
+                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Amount to Pay (GHC)</label>
                     <input 
                       type="number"
                       className="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 font-bold text-xl"
@@ -808,7 +782,7 @@ const Invoices = () => {
                       value={paymentAmount}
                       onChange={(e) => setPaymentAmount(e.target.value)}
                     />
-                    <p className="text-[10px] text-orange-500 font-medium">Max Payable: GH₵ {selectedInvoice.remainingBalance?.toLocaleString()}</p>
+                    <p className="text-[10px] text-orange-500 font-medium">Max Payable: GHC {selectedInvoice.remainingBalance?.toLocaleString()}</p>
                   </div>
 
                   <div className="space-y-2">

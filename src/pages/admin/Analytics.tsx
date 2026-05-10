@@ -87,14 +87,14 @@ const Analytics = () => {
   const kpis = [
     { 
       label: 'Total Revenue', 
-      value: `GH₵ ${totalRevenue.toLocaleString()}`, 
+      value: `GHC ${totalRevenue.toLocaleString()}`, 
       icon: <DollarSign size={24} />, 
       color: 'bg-green-100 text-green-700',
       description: 'Total actual cash received'
     },
     { 
       label: 'Outstanding', 
-      value: `GH₵ ${outstandingPayments.toLocaleString()}`, 
+      value: `GHC ${outstandingPayments.toLocaleString()}`, 
       icon: <Clock size={24} />, 
       color: 'bg-orange-100 text-orange-700',
       description: 'Pending payments from clients'
@@ -205,7 +205,7 @@ const Analytics = () => {
                   axisLine={false} 
                   tickLine={false} 
                   tick={{ fontSize: 12, fontWeight: 700, fill: '#9CA3AF' }}
-                  tickFormatter={(val) => `GH₵${val >= 1000 ? (val/1000).toFixed(0)+'k' : val}`}
+                  tickFormatter={(val) => `GHC${val >= 1000 ? (val/1000).toFixed(0)+'k' : val}`}
                 />
                 <Tooltip 
                   contentStyle={{ 
@@ -321,7 +321,7 @@ const Analytics = () => {
             </div>
             <div className="shrink-0 text-right">
               <p className="text-[10px] font-bold text-gray-400 uppercase">Cash Gap</p>
-              <p className="text-xl font-black text-red-500">GH₵{outstandingPayments.toLocaleString()}</p>
+              <p className="text-xl font-black text-red-500">GHC{outstandingPayments.toLocaleString()}</p>
             </div>
           </div>
         </div>
