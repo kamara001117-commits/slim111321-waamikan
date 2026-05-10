@@ -34,19 +34,23 @@ import Logistics from '@/src/pages/admin/Logistics';
 import Settings from '@/src/pages/admin/Settings';
 import { CartProvider } from '@/src/lib/CartContext';
 
+import { initializeSystemAccounts } from '@/src/lib/accountingService';
+
 export default function App() {
   useEffect(() => {
-    async function testConnection() {
+    async function initApp() {
       try {
         // Test connection to the specific database
         await getDocFromServer(doc(db, 'test', 'connection'));
+        // Initialize system accounts if they don't exist
+        await initializeSystemAccounts();
       } catch (error) {
         if (error instanceof Error && error.message.includes('the client is offline')) {
           console.error("Please check your Firebase configuration or network.");
         }
       }
     }
-    testConnection();
+    initApp();
   }, []);
 
   return (

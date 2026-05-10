@@ -41,8 +41,8 @@ const Home = () => {
   ];
 
   const heroImages = [
-    '/src/pages/public/waamikan-hero-1.png',
-    '/src/pages/public/waamikan-hero-2.png'
+    '/waamikan-hero-1.png',
+    '/waamikan-hero-2.png'
   ];
 
   const [currentHero, setCurrentHero] = React.useState(0);
