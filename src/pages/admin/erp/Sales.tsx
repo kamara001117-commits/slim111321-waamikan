@@ -20,6 +20,7 @@ import {
   X
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { printDocument } from '@/src/lib/documentService';
 
 const Sales = () => {
   const [documents, setDocuments] = useState<SalesDocument[]>([]);
@@ -278,7 +279,10 @@ const Sales = () => {
                                  )}
                                </>
                              )}
-                             <button className="p-2 bg-gray-50 text-gray-400 rounded-xl hover:bg-[#0B3C5D] hover:text-white transition-all">
+                             <button 
+                               onClick={() => printDocument(activeTab, doc)}
+                               className="p-2 bg-gray-50 text-gray-400 rounded-xl hover:bg-[#0B3C5D] hover:text-white transition-all"
+                             >
                                <Printer size={18} />
                              </button>
                           </div>

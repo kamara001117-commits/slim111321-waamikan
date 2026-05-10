@@ -172,3 +172,90 @@ export const generateAndUploadReceiptPDF = async (receipt: Receipt): Promise<str
   await uploadBytes(storageRef, pdfBlob);
   return await getDownloadURL(storageRef);
 };
+
+export const printDocument = async (type: string, data: any) => {
+  const pdfDoc = new jsPDF();
+  
+  // Reuse header logic
+  pdfDoc.setFillColor(11, 60, 93);
+  pdfDoc.rect(0, 0, 210, 50, 'F');
+  pdfDoc.setTextColor(255, 255, 255);
+  pdfDoc.setFontSize(28);
+  pdfDoc.setFont('helvetica', 'bold');
+  pdfDoc.text("WAAMIKAN ENTERPRISE", 20, 25);
+  
+  pdfDoc.setFontSize(10);
+  pdfDoc.setFont('helvetica', 'normal');
+  pdfDoc.text("Healthcare Solutions | Medical Imaging | Consumables", 20, 32);
+  pdfDoc.text("Accra, Ghana • Official Document", 20, 37);
+
+  // Document Title
+  pdfDoc.setTextColor(0, 0, 0);
+  pdfDoc.setFontSize(18);
+  pdfDoc.text(type.toUpperCase(), 140, 25, { align: 'left' });
+  pdfDoc.setFontSize(10);
+  pdfDoc.text(`ID: ${data.invoiceNumber || data.docNumber || data.id}`, 140, 32);
+  pdfDoc.text(`Date: ${format(new Date(data.createdAt || data.date), 'PPP')}`, 140, 37);
+
+  // Content
+  let y = 70;
+  pdfDoc.setFont('helvetica', 'bold');
+  pdfDoc.text("Entity / Customer:", 20, y);
+  pdfDoc.setFont('helvetica', 'normal');
+  pdfDoc.text(data.customerName || "N/A", 60, y);
+  
+  y += 20;
+  pdfDoc.setFillColor(245, 245, 245);
+  pdfDoc.rect(20, y, 170, 10, 'F');
+  pdfDoc.setFont('helvetica', 'bold');
+  pdfDoc.text("Description", 25, y + 7);
+  pdfDoc.text("Amount", 190, y + 7, { align: 'right' });
+  
+  y += 15;
+  pdfDoc.setFont('helvetica', 'normal');
+  const items = data.items || [{ name: 'Document Total', total: data.total || data.amount }];
+  items.forEach((item: any) => {
+    pdfDoc.text(item.name || item.description || 'Generic Item', 25, y);
+    pdfDoc.text(`GH₵ ${(item.total || item.amount || data.total).toLocaleString()}`, 190, y, { align: 'right' });
+    y += 10;
+  });
+
+  y += 10;
+  pdfDoc.setDrawColor(200, 200, 200);
+  pdfDoc.line(20, y, 190, y);
+  y += 10;
+  pdfDoc.setFontSize(14);
+  pdfDoc.setFont('helvetica', 'bold');
+  pdfDoc.text("TOTAL:", 150, y, { align: 'right' });
+  pdfDoc.text(`GH₵ ${(data.total || data.amount).toLocaleString()}`, 190, y, { align: 'right' });
+
+  // Open in new tab for printing
+  const string = pdfDoc.output('bloburl');
+  window.open(string, '_blank');
+};
+
+export const downloadDocument = async (type: string, data: any) => {
+  const pdfDoc = new jsPDF();
+  // ... similar generation logic but with save()
+  // For simplicity and speed, let's use the print logic's blob mechanism
+  
+  pdfDoc.setFillColor(11, 60, 93);
+  pdfDoc.rect(0, 0, 210, 50, 'F');
+  pdfDoc.setTextColor(255, 255, 255);
+  pdfDoc.setFontSize(28);
+  pdfDoc.setFont('helvetica', 'bold');
+  pdfDoc.text("WAAMIKAN ENTERPRISE", 20, 25);
+  
+  pdfDoc.setFontSize(10);
+  pdfDoc.setFont('helvetica', 'normal');
+  pdfDoc.text("Official Records Storage", 20, 32);
+
+  pdfDoc.setTextColor(0, 0, 0);
+  pdfDoc.setFontSize(18);
+  pdfDoc.text(type.toUpperCase(), 140, 25);
+  
+  pdfDoc.text(`Doc ID: ${data.id}`, 20, 80);
+  pdfDoc.text(`Total amount: GH₵ ${(data.total || data.amount).toLocaleString()}`, 20, 90);
+
+  pdfDoc.save(`${type}_${data.id}.pdf`);
+};

@@ -9,9 +9,11 @@ import {
   Download, 
   ExternalLink,
   ChevronRight,
-  Printer
+  Printer,
+  RefreshCw
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { printDocument, downloadDocument } from '@/src/lib/documentService';
 
 const DocumentCenter = () => {
   const [docs, setDocs] = useState<any[]>([]);
@@ -127,7 +129,10 @@ const DocumentCenter = () => {
                              >
                                 <Download size={18} />
                              </a>
-                             <button className="p-3 bg-gray-50 text-gray-400 rounded-xl hover:bg-[#EAB308] hover:text-white transition-all">
+                             <button 
+                                onClick={() => printDocument(doc.type, doc)}
+                                className="p-3 bg-gray-50 text-gray-400 rounded-xl hover:bg-[#EAB308] hover:text-white transition-all"
+                             >
                                 <Printer size={18} />
                              </button>
                           </div>

@@ -20,7 +20,8 @@ import {
   ClipboardList,
   Archive,
   FileMinus,
-  Receipt
+  Receipt,
+  Printer
 } from 'lucide-react';
 import { 
   createSupplier, 
@@ -32,6 +33,7 @@ import {
   createDebitNote
 } from '@/src/lib/procurementService';
 import { format } from 'date-fns';
+import { printDocument } from '@/src/lib/documentService';
 
 const Procurement = () => {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -327,6 +329,7 @@ const Procurement = () => {
                     <th className="px-8 py-6 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Date</th>
                     <th className="px-8 py-6 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Value</th>
                     <th className="px-8 py-6 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
+                    <th className="px-8 py-6 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -355,6 +358,14 @@ const Procurement = () => {
                              {po.status}
                            </span>
                          </div>
+                      </td>
+                      <td className="px-8 py-6 text-right">
+                         <button 
+                           onClick={(e) => { e.stopPropagation(); printDocument('Purchase Order', po); }}
+                           className="p-2 bg-gray-50 text-gray-400 rounded-xl hover:bg-[#0B3C5D] hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                         >
+                           <Printer size={16} />
+                         </button>
                       </td>
                     </tr>
                   ))}
@@ -514,11 +525,12 @@ const Procurement = () => {
                     <th className="px-8 py-6 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Due Date</th>
                     <th className="px-8 py-6 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Amount Due</th>
                     <th className="px-8 py-6 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Payment Status</th>
+                    <th className="px-8 py-6 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {bills.map(bill => (
-                    <tr key={bill.id} className="hover:bg-gray-50/50 transition-colors">
+                    <tr key={bill.id} className="hover:bg-gray-50/50 transition-colors group">
                       <td className="px-8 py-6 font-mono text-sm font-black text-[#1F7A8C]">{bill.billNumber}</td>
                       <td className="px-8 py-6 font-black text-gray-800 uppercase tracking-tight">{bill.supplierName}</td>
                       <td className="px-8 py-6 text-sm font-bold text-red-400 italic">
@@ -537,6 +549,14 @@ const Procurement = () => {
                              {bill.status}
                            </span>
                          </div>
+                      </td>
+                      <td className="px-8 py-6 text-right">
+                         <button 
+                           onClick={() => printDocument('Supplier Bill', bill)}
+                           className="p-2 bg-gray-50 text-gray-400 rounded-xl hover:bg-[#0B3C5D] hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                         >
+                           <Printer size={16} />
+                         </button>
                       </td>
                     </tr>
                   ))}

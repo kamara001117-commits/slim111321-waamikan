@@ -17,11 +17,13 @@ import {
   Eye,
   Calendar,
   User,
-  Hash
+  Hash,
+  Printer
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'motion/react';
 import { handleFirestoreError, OperationType } from '@/src/lib/firestoreUtils';
+import { printDocument } from '@/src/lib/documentService';
 
 const Receipts = () => {
   const { currentUserRole } = useOutletContext<{ currentUserRole: string | null }>();
@@ -128,6 +130,13 @@ const Receipts = () => {
                       >
                         <Download size={18} />
                       </a>
+                      <button 
+                        onClick={() => printDocument('Receipt', receipt)}
+                        className="p-2 hover:text-[#EAB308] transition-colors"
+                        title="Print Receipt"
+                      >
+                        <Printer size={18} />
+                      </button>
                     </div>
                   </td>
                 </tr>
