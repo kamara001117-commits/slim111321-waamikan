@@ -3,90 +3,57 @@ import {
   doc, 
   setDoc, 
   updateDoc, 
-  getDoc, 
   increment, 
-  query, 
-  where, 
-  getDocs,
-  addDoc,
-  runTransaction
+  runTransaction,
+  getDoc
 } from "firebase/firestore";
 import { db, auth } from "./firebase";
-import { Supplier, PurchaseOrder, SupplierBill } from "../types/erp";
-import { getAccountByCode, recordJournalEntry } from "./accountingService";
+import { SupplierBill, BillItem } from "../types/erp";
+import { getAccountByCode } from "./accountingService";
+import { handleFirestoreError, OperationType } from "./firestoreUtils";
 
-const SUPPLIERS_COLLECTION = 'suppliers';
-const PO_COLLECTION = 'purchase_orders';
-const QUOTES_COLLECTION = 'purchase_quotes';
-const RECEIPTS_COLLECTION = 'goods_receipts';
-const DEBIT_NOTES_COLLECTION = 'debit_notes';
-const BILLS_COLLECTION = 'supplier_bills';
-
-export const createSupplier = async (supplier: Omit<Supplier, 'id' | 'balance' | 'createdAt'>) => {
-  const ref = doc(collection(db, SUPPLIERS_COLLECTION));
-  const newSupplier: Supplier = {
-    ...supplier,
-    id: ref.id,
-    balance: 0,
-    createdAt: new Date().toISOString()
-  };
-  await setDoc(ref, newSupplier);
-  return ref.id;
-};
-
-export const createPurchaseQuote = async (quote: any) => {
-  const countSnapshot = await getDocs(collection(db, QUOTES_COLLECTION));
-  const quoteNumber = `PQ-${(countSnapshot.size + 1).toString().padStart(5, '0')}`;
-  
-  const ref = doc(collection(db, QUOTES_COLLECTION));
-  const newQuote = {
-    ...quote,
-    id: ref.id,
-    quoteNumber,
-    createdAt: new Date().toISOString()
-  };
-  await setDoc(ref, newQuote);
-  return ref.id;
-};
-
-export const createPurchaseOrder = async (po: Omit<PurchaseOrder, 'id' | 'poNumber' | 'status'>) => {
-  const countSnapshot = await getDocs(collection(db, PO_COLLECTION));
-  const poNumber = `PO-${(countSnapshot.size + 1).toString().padStart(5, '0')}`;
-  
-  const ref = doc(collection(db, PO_COLLECTION));
-  const newPO: PurchaseOrder = {
-    ...po,
-    id: ref.id,
-    poNumber,
-    status: 'Draft'
-  };
-  await setDoc(ref, newPO);
-  return ref.id;
-};
-
-/**
- * Goods Receipt: Records physical arrival and updates inventory
- */
-export const recordGoodsReceipt = async (receipt: any) => {
-  const countSnapshot = await getDocs(collection(db, RECEIPTS_COLLECTION));
-  const receiptNumber = `GR-${(countSnapshot.size + 1).toString().padStart(5, '0')}`;
-
+export const recordSupplierBill = async (billData: Omit<SupplierBill, 'id' | 'createdAt' | 'paidAmount' | 'status'>) => {
   return await runTransaction(db, async (transaction) => {
-    const receiptRef = doc(collection(db, RECEIPTS_COLLECTION));
-
-    const newReceipt = {
-      ...receipt,
-      id: receiptRef.id,
-      receiptNumber,
-      createdAt: new Date().toISOString()
+    // 1. Prepare Bill Data
+    const billRef = doc(collection(db, 'supplier_bills'));
+    const billId = billRef.id;
+    const now = new Date().toISOString();
+    
+    const fullBill: SupplierBill = {
+      ...billData,
+      id: billId,
+      paidAmount: 0,
+      status: 'Unpaid',
+      createdAt: now
     };
 
-    // Update Inventory for each item
-    for (const item of receipt.items) {
+    // 2. Find necessary accounts
+    const apAccount = await getAccountByCode('2100'); // Accounts Payable
+    const inventoryAssetAccount = await getAccountByCode('1200'); // Inventory Asset
+    
+    if (!apAccount || !inventoryAssetAccount) {
+        throw new Error("Accounting system not properly initialized (Accounts Payable or Inventory Asset missing)");
+    }
+
+    // 3. Update Inventory Stock and prepare Journal Lines
+    const journalLines: any[] = [];
+    
+    // Credit Accounts Payable for the total bill amount
+    journalLines.push({
+      accountId: apAccount.id,
+      accountName: apAccount.name,
+      debit: 0,
+      credit: fullBill.total,
+      memo: `Bill ${fullBill.billNumber} from ${fullBill.supplierName}`
+    });
+
+    for (const item of fullBill.items) {
       if (item.productId) {
+        // Update product stock
         const productRef = doc(db, 'products', item.productId);
         transaction.update(productRef, {
-          stock: increment(item.quantity)
+          stock: increment(item.quantity),
+          updatedAt: now
         });
 
         // Log movement
@@ -96,149 +63,190 @@ export const recordGoodsReceipt = async (receipt: any) => {
           productId: item.productId,
           quantity: item.quantity,
           type: 'Inbound',
-          reason: `Goods Receipt: ${receiptNumber}`,
-          date: new Date().toISOString(),
+          reason: `Supplier Bill: ${fullBill.billNumber}`,
+          date: now,
           performedBy: auth.currentUser?.uid || 'system'
+        });
+      }
+
+      // Debit the corresponding account (Inventory Asset or Expense)
+      // If none specified, default to Inventory Asset
+      const debitAccountId = item.accountId || inventoryAssetAccount.id;
+      
+      // We need to fetch account name if it's not the default one
+      let accountName = "Inventory Asset";
+      if (item.accountId) {
+          const accSnap = await transaction.get(doc(db, 'accounts', item.accountId));
+          if (accSnap.exists()) {
+              accountName = accSnap.data().name;
+          }
+      }
+
+      journalLines.push({
+        accountId: debitAccountId,
+        accountName: accountName,
+        debit: item.total,
+        credit: 0,
+        memo: item.description
+      });
+    }
+
+    // 4. Update Supplier Balance
+    const supplierRef = doc(db, 'suppliers', fullBill.supplierId);
+    transaction.update(supplierRef, {
+      balance: increment(fullBill.total)
+    });
+
+    // 5. Update Account Balances in Transactions
+    // AP increases with Credit
+    transaction.update(doc(db, 'accounts', apAccount.id), {
+        balance: increment(fullBill.total),
+        updatedAt: now
+    });
+
+    // Inventory Asset / Expenses increase with Debit
+    for (const line of journalLines) {
+        if (line.debit > 0) {
+            transaction.update(doc(db, 'accounts', line.accountId), {
+                balance: increment(line.debit),
+                updatedAt: now
+            });
+        }
+    }
+
+    // 6. Record Journal Entry
+    const journalRef = doc(collection(db, 'journal_entries'));
+    transaction.set(journalRef, {
+      id: journalRef.id,
+      date: fullBill.date,
+      reference: billId,
+      description: `Vendor Bill ${fullBill.billNumber} - ${fullBill.supplierName}`,
+      lines: journalLines,
+      status: 'posted',
+      sourceType: 'purchase',
+      createdBy: auth.currentUser?.uid || 'system',
+      createdAt: now
+    });
+
+    // 7. Save the Bill
+    transaction.set(billRef, fullBill);
+
+    // 8. Log Activity
+    const logRef = doc(collection(db, 'logs'));
+    transaction.set(logRef, {
+      id: logRef.id,
+      userId: auth.currentUser?.uid || 'system',
+      userName: auth.currentUser?.displayName || 'System',
+      action: `Recorded Supplier Bill ${fullBill.billNumber}`,
+      type: 'purchase',
+      targetId: billId,
+      timestamp: now,
+      details: `Total: GH₵ ${fullBill.total.toLocaleString()}`
+    });
+
+    return billId;
+  }).catch(error => {
+    handleFirestoreError(error, OperationType.CREATE, 'supplier_bills');
+  });
+};
+
+export const createSupplier = async (data: any) => {
+  const ref = doc(collection(db, 'suppliers'));
+  await setDoc(ref, {
+    ...data,
+    id: ref.id,
+    balance: 0,
+    createdAt: new Date().toISOString()
+  });
+  return ref.id;
+};
+
+export const createPurchaseQuote = async (data: any) => {
+  const ref = doc(collection(db, 'purchase_quotes'));
+  const quoteNumber = `PQ-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
+  await setDoc(ref, {
+    ...data,
+    id: ref.id,
+    quoteNumber,
+    status: 'Draft',
+    createdAt: new Date().toISOString()
+  });
+  return ref.id;
+};
+
+export const createPurchaseOrder = async (data: any) => {
+  const ref = doc(collection(db, 'purchase_orders'));
+  const poNumber = `PO-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
+  await setDoc(ref, {
+    ...data,
+    id: ref.id,
+    poNumber,
+    date: new Date().toISOString(),
+    status: 'Ordered',
+    createdAt: new Date().toISOString()
+  });
+  return ref.id;
+};
+
+export const recordGoodsReceipt = async (data: any) => {
+  return await runTransaction(db, async (transaction) => {
+    const ref = doc(collection(db, 'goods_receipts'));
+    const receiptNumber = `GRN-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
+    
+    // Update PO status if linked
+    if (data.poId) {
+      transaction.update(doc(db, 'purchase_orders', data.poId), { status: 'Received' });
+    }
+
+    // Update product stock
+    for (const item of data.items || []) {
+      if (item.productId) {
+        transaction.update(doc(db, 'products', item.productId), {
+          stock: increment(item.quantity)
         });
       }
     }
 
-    // Link to PO if applicable
-    if (receipt.poId) {
-      const poRef = doc(db, PO_COLLECTION, receipt.poId);
-      transaction.update(poRef, { status: 'Received' });
-    }
-
-    transaction.set(receiptRef, newReceipt);
-    return receiptRef.id;
-  });
-};
-
-/**
- * Debit Note: Supplier adjustment / Return
- */
-export const createDebitNote = async (note: any) => {
-  const countSnapshot = await getDocs(collection(db, DEBIT_NOTES_COLLECTION));
-  const noteNumber = `DN-${(countSnapshot.size + 1).toString().padStart(5, '0')}`;
-
-  return await runTransaction(db, async (transaction) => {
-    const noteRef = doc(collection(db, DEBIT_NOTES_COLLECTION));
-
-    const newNote = {
-      ...note,
-      id: noteRef.id,
-      noteNumber,
+    transaction.set(ref, {
+      ...data,
+      id: ref.id,
+      receiptNumber,
       createdAt: new Date().toISOString()
-    };
-
-    // 1. Accounting: Decrease Accounts Payable
-    const apAccount = await getAccountByCode('2100');
-    const returnAccount = await getAccountByCode('5100');
-    if (!apAccount || !returnAccount) throw new Error("Accounting not initialized");
-
-    const journalRef = doc(collection(db, 'journal_entries'));
-    transaction.set(journalRef, {
-      id: journalRef.id,
-      date: new Date().toISOString(),
-      reference: noteRef.id,
-      description: `Debit Note: ${noteNumber}`,
-      sourceType: 'purchase',
-      status: 'posted',
-      createdBy: auth.currentUser?.uid || 'system',
-      createdAt: new Date().toISOString(),
-      lines: [
-        { accountId: apAccount.id, accountName: apAccount.name, debit: note.amount, credit: 0 },
-        { accountId: returnAccount.id, accountName: returnAccount.name, debit: 0, credit: note.amount }
-      ]
     });
-
-    transaction.update(doc(db, 'accounts', apAccount.id), { balance: increment(-note.amount) });
-    transaction.update(doc(db, 'accounts', returnAccount.id), { balance: increment(-note.amount) });
-    
-    // 2. Update Supplier Balance
-    const supplierRef = doc(db, SUPPLIERS_COLLECTION, note.supplierId);
-    transaction.update(supplierRef, { balance: increment(-note.amount) });
-
-    transaction.set(noteRef, newNote);
-    return noteRef.id;
+    return ref.id;
   });
 };
 
 export const convertQuoteToPO = async (quoteId: string) => {
-  return await runTransaction(db, async (transaction) => {
-    const quoteRef = doc(db, QUOTES_COLLECTION, quoteId);
-    const quoteSnap = await transaction.get(quoteRef);
-    const quoteData = quoteSnap.data();
-    if (!quoteData) throw new Error("Quote not found");
-
-    const poId = await createPurchaseOrder({
-      supplierId: quoteData.supplierId,
-      supplierName: quoteData.supplierName,
-      items: quoteData.items,
-      subtotal: quoteData.subtotal || quoteData.total,
-      tax: quoteData.tax || 0,
-      total: quoteData.total,
-      date: new Date().toISOString(),
-      expectedDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-    });
-
-    transaction.update(quoteRef, { status: 'Converted', poId });
-    return poId;
+  const quoteSnap = await getDoc(doc(db, 'purchase_quotes', quoteId));
+  if (!quoteSnap.exists()) throw new Error("Quote not found");
+  
+  const quoteData = quoteSnap.data();
+  const poId = await createPurchaseOrder({
+    supplierId: quoteData.supplierId,
+    supplierName: quoteData.supplierName,
+    items: quoteData.items || [],
+    total: quoteData.total,
   });
+
+  await updateDoc(doc(db, 'purchase_quotes', quoteId), { status: 'Converted' });
+  return poId;
 };
 
-export const recordSupplierBill = async (bill: Omit<SupplierBill, 'id' | 'paidAmount' | 'status'> & { updateStock?: boolean }) => {
-  return await runTransaction(db, async (transaction) => {
-    const billRef = doc(collection(db, BILLS_COLLECTION));
-    const newBill: SupplierBill = {
-      ...bill,
-      id: billRef.id,
-      paidAmount: 0,
-      status: 'Unpaid'
-    };
-
-    // 1. Accounting: Update Accounts Payable
-    const apAccount = await getAccountByCode('2100'); // Accounts Payable
-    const inventoryAccount = await getAccountByCode('1200'); // Inventory Asset
-    
-    if (!apAccount || !inventoryAccount) throw new Error("Accounting not initialized");
-
-    // Journal Entry for purchase
-    const journalRef = doc(collection(db, 'journal_entries'));
-    transaction.set(journalRef, {
-      id: journalRef.id,
-      date: bill.date,
-      reference: billRef.id,
-      description: `Supplier Bill Received: ${bill.billNumber}`,
-      sourceType: 'purchase',
-      status: 'posted',
-      createdBy: auth.currentUser?.uid || 'system',
-      createdAt: new Date().toISOString(),
-      lines: [
-        { accountId: inventoryAccount.id, accountName: inventoryAccount.name, debit: bill.total, credit: 0 },
-        { accountId: apAccount.id, accountName: apAccount.name, debit: 0, credit: bill.total }
-      ]
-    });
-
-    // 2. Update Inventory stock (only if requested, e.g. if no GRN was recorded)
-    if (bill.updateStock && bill.items) {
-      for (const item of (bill as any).items) {
-        if (item.productId) {
-          const productRef = doc(db, 'products', item.productId);
-          transaction.update(productRef, { stock: increment(item.quantity) });
-        }
-      }
-    }
-
-    // 3. Update account balances
-    transaction.update(doc(db, 'accounts', apAccount.id), { balance: increment(bill.total) });
-    transaction.update(doc(db, 'accounts', inventoryAccount.id), { balance: increment(bill.total) });
-
-    // 4. Update Supplier Balance
-    const supplierRef = doc(db, SUPPLIERS_COLLECTION, bill.supplierId);
-    transaction.update(supplierRef, { balance: increment(bill.total) });
-
-    transaction.set(billRef, newBill);
-    return billRef.id;
+export const createDebitNote = async (data: any) => {
+  const ref = doc(collection(db, 'debit_notes'));
+  const noteNumber = `DN-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
+  
+  // Update supplier balance (Debit note reduces what we owe)
+  await updateDoc(doc(db, 'suppliers', data.supplierId), {
+    balance: increment(-data.amount)
   });
+
+  await setDoc(ref, {
+    ...data,
+    id: ref.id,
+    noteNumber,
+    createdAt: new Date().toISOString()
+  });
+  return ref.id;
 };

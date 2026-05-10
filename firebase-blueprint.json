@@ -197,13 +197,38 @@
     },
     "supplierBill": {
        "title": "Supplier Bill",
-       "description": "Vendor invoice (payable)",
+       "description": "Vendor invoice (payable) with inventory and accounting integration",
        "type": "object",
        "properties": {
+          "id": { "type": "string" },
           "billNumber": { "type": "string" },
+          "supplierId": { "type": "string" },
+          "supplierName": { "type": "string" },
+          "poId": { "type": "string" },
+          "date": { "type": "string", "format": "date" },
+          "dueDate": { "type": "string", "format": "date" },
+          "items": { 
+             "type": "array",
+             "items": {
+                "type": "object",
+                "properties": {
+                   "productId": { "type": "string" },
+                   "description": { "type": "string" },
+                   "quantity": { "type": "number" },
+                   "unitPrice": { "type": "number" },
+                   "total": { "type": "number" },
+                   "accountId": { "type": "string" }
+                }
+             }
+          },
+          "subtotal": { "type": "number" },
+          "tax": { "type": "number" },
           "total": { "type": "number" },
-          "status": { "type": "string" }
-       }
+          "paidAmount": { "type": "number" },
+          "status": { "type": "string", "enum": ["Unpaid", "Partial", "Paid", "Overdue"] },
+          "createdAt": { "type": "string", "format": "date-time" }
+       },
+       "required": ["billNumber", "supplierId", "date", "items", "total", "status"]
     },
     "inventoryLocation": {
        "title": "Inventory Location",

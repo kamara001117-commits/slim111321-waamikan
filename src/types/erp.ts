@@ -116,14 +116,16 @@ export interface SupplierBill {
   total: number;
   paidAmount: number;
   status: 'Unpaid' | 'Partial' | 'Paid' | 'Overdue';
+  createdAt: string;
 }
 
 export interface BillItem {
+  productId?: string;
   description: string;
   quantity: number;
   unitPrice: number;
   total: number;
-  accountId: string; // Expense account
+  accountId: string; // Account to debit (e.g., Inventory Asset or Expense account)
 }
 
 // --- Inventory & Warehouse ---

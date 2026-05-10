@@ -100,8 +100,88 @@ const Procurement = () => {
   const [newQuote, setNewQuote] = useState({ supplierId: '', supplierName: '', total: 0, items: [] });
   const [newPO, setNewPO] = useState({ supplierId: '', supplierName: '', total: 0, items: [] });
   const [newReceipt, setNewReceipt] = useState({ poId: '', poNumber: '', deliveryNote: '', items: [] });
-  const [newBill, setNewBill] = useState({ supplierId: '', supplierName: '', billNumber: '', total: 0, date: format(new Date(), 'yyyy-MM-dd'), updateStock: false });
   const [newDebitNote, setNewDebitNote] = useState({ supplierId: '', supplierName: '', amount: 0, reason: '' });
+  const [newBill, setNewBill] = useState<{
+    supplierId: string;
+    supplierName: string;
+    billNumber: string;
+    date: string;
+    dueDate: string;
+    items: any[];
+    tax: number;
+  }>({ 
+    supplierId: '', 
+    supplierName: '', 
+    billNumber: '', 
+    date: format(new Date(), 'yyyy-MM-dd'), 
+    dueDate: format(new Date(), 'yyyy-MM-dd'),
+    items: [],
+    tax: 0
+  });
+
+  const calculateBillTotal = () => {
+    const subtotal = newBill.items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+    return subtotal + newBill.tax;
+  };
+
+  const handleAddBillItem = () => {
+    setNewBill({
+      ...newBill,
+      items: [...newBill.items, { productId: '', description: '', quantity: 1, unitPrice: 0, total: 0, accountId: '' }]
+    });
+  };
+
+  const handleUpdateBillItem = (index: number, field: string, value: any) => {
+    const updatedItems = [...newBill.items];
+    updatedItems[index] = { ...updatedItems[index], [field]: value };
+    
+    if (field === 'productId' && value) {
+      const prod = products.find(p => p.id === value);
+      if (prod) {
+        updatedItems[index].description = prod.name;
+        // Default to cost price if available, otherwise sales price
+        updatedItems[index].unitPrice = prod.costPrice || prod.price || 0;
+      }
+    }
+    
+    updatedItems[index].total = updatedItems[index].quantity * updatedItems[index].unitPrice;
+    setNewBill({ ...newBill, items: updatedItems });
+  };
+
+  const handleRemoveBillItem = (index: number) => {
+    setNewBill({
+      ...newBill,
+      items: newBill.items.filter((_, i) => i !== index)
+    });
+  };
+
+  const handleAddBill = async () => {
+    if (!newBill.supplierId || !newBill.billNumber || newBill.items.length === 0) {
+      alert("Please fill all required fields and add at least one item.");
+      return;
+    }
+
+    try {
+      const subtotal = newBill.items.reduce((sum, item) => sum + item.total, 0);
+      await recordSupplierBill({
+        ...newBill,
+        subtotal,
+        total: subtotal + newBill.tax
+      });
+      setShowAddBill(false);
+      setNewBill({
+        supplierId: '',
+        supplierName: '',
+        billNumber: '',
+        date: format(new Date(), 'yyyy-MM-dd'),
+        dueDate: format(new Date(), 'yyyy-MM-dd'),
+        items: [],
+        tax: 0
+      });
+    } catch (error: any) {
+      alert(error.message);
+    }
+  };
 
   const handleAddDebitNote = async () => {
     try {
@@ -126,11 +206,6 @@ const Procurement = () => {
   const handleAddReceipt = async () => {
     await recordGoodsReceipt(newReceipt);
     setShowAddReceipt(false);
-  };
-
-  const handleAddBill = async () => {
-    await recordSupplierBill(newBill);
-    setShowAddBill(false);
   };
 
   const handleConvertQuote = async (quoteId: string) => {
@@ -548,22 +623,129 @@ const Procurement = () => {
       {showAddBill && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowAddBill(false)} />
-          <div className="relative bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md p-10 space-y-4">
-             <h3 className="text-2xl font-black text-[#0B3C5D]">RECORD SUPPLIER BILL</h3>
-             <select className="w-full px-6 py-4 bg-gray-50 rounded-2xl outline-none" onChange={e => {
-                const s = suppliers.find(sup => sup.id === e.target.value);
-                setNewBill({...newBill, supplierId: e.target.value, supplierName: s?.name || ''});
-             }}>
-                <option value="">Select Vendor</option>
-                {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-             </select>
-             <input placeholder="Bill Number" className="w-full px-6 py-4 bg-gray-50 rounded-2xl outline-none" onChange={e => setNewBill({...newBill, billNumber: e.target.value})} />
-             <input type="number" placeholder="Bill Amount" className="w-full px-6 py-4 bg-gray-50 rounded-2xl outline-none" onChange={e => setNewBill({...newBill, total: Number(e.target.value)})} />
-             <label className="flex items-center gap-2 cursor-pointer p-4 bg-gray-50 rounded-2xl">
-                <input type="checkbox" checked={newBill.updateStock} onChange={e => setNewBill({...newBill, updateStock: e.target.checked})} />
-                <span className="text-xs font-bold text-gray-500">Update Stock (Check if no GRN)</span>
-             </label>
-             <button onClick={handleAddBill} className="w-full py-5 bg-[#0B3C5D] text-white font-black rounded-2xl">Post to Ledger</button>
+          <div className="relative bg-white rounded-[2.5rem] shadow-2xl w-full max-w-4xl p-8 max-h-[90vh] overflow-y-auto">
+             <div className="flex justify-between items-center mb-8">
+                <h3 className="text-2xl font-black text-[#0B3C5D]">RECORD SUPPLIER BILL</h3>
+                <button onClick={() => setShowAddBill(false)} className="p-2 hover:bg-gray-100 rounded-full text-gray-400">
+                   <X size={24} />
+                </button>
+             </div>
+             
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div className="space-y-4">
+                   <div>
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-2">Supplier</label>
+                      <select className="w-full px-6 py-4 bg-gray-50 rounded-2xl outline-none" 
+                        value={newBill.supplierId}
+                        onChange={e => {
+                          const s = suppliers.find(sup => sup.id === e.target.value);
+                          setNewBill({...newBill, supplierId: e.target.value, supplierName: s?.name || ''});
+                        }}>
+                          <option value="">Select Vendor</option>
+                          {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                      </select>
+                   </div>
+                   <div>
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-2">Bill Number</label>
+                      <input placeholder="INV-2024-001" className="w-full px-6 py-4 bg-gray-50 rounded-2xl outline-none" 
+                        value={newBill.billNumber}
+                        onChange={e => setNewBill({...newBill, billNumber: e.target.value})} />
+                   </div>
+                </div>
+                <div className="space-y-4">
+                   <div className="grid grid-cols-2 gap-4">
+                      <div>
+                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-2">Bill Date</label>
+                         <input type="date" className="w-full px-6 py-4 bg-gray-50 rounded-2xl outline-none text-sm" 
+                           value={newBill.date}
+                           onChange={e => setNewBill({...newBill, date: e.target.value})} />
+                      </div>
+                      <div>
+                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-2">Due Date</label>
+                         <input type="date" className="w-full px-6 py-4 bg-gray-50 rounded-2xl outline-none text-sm" 
+                           value={newBill.dueDate}
+                           onChange={e => setNewBill({...newBill, dueDate: e.target.value})} />
+                      </div>
+                   </div>
+                   <div>
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-2">Tax Amount (VAT)</label>
+                      <input type="number" placeholder="0.00" className="w-full px-6 py-4 bg-gray-50 rounded-2xl outline-none" 
+                        value={newBill.tax}
+                        onChange={e => setNewBill({...newBill, tax: Number(e.target.value)})} />
+                   </div>
+                </div>
+             </div>
+
+             <div className="mb-8">
+                <div className="flex justify-between items-center mb-4">
+                   <h4 className="text-sm font-black text-[#0B3C5D] uppercase tracking-widest pl-2">Itemized Products / Services</h4>
+                   <button 
+                     onClick={handleAddBillItem}
+                     className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-[#0B3C5D] rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-blue-100 transition-all">
+                      <Plus size={14} /> Add Line Item
+                   </button>
+                </div>
+                <div className="space-y-4 max-h-60 overflow-y-auto pr-2">
+                   {newBill.items.map((item, index) => (
+                      <div key={index} className="grid grid-cols-12 gap-3 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                         <div className="col-span-4">
+                            <select 
+                              className="w-full px-3 py-2 bg-white rounded-xl outline-none text-xs"
+                              value={item.productId}
+                              onChange={e => handleUpdateBillItem(index, 'productId', e.target.value)}
+                            >
+                               <option value="">Manual Entry / Service</option>
+                               {products.map(p => <option key={p.id} value={p.id}>{p.name} - ({p.sku})</option>)}
+                            </select>
+                         </div>
+                         <div className="col-span-3">
+                            <input 
+                              placeholder="Description" 
+                              className="w-full px-3 py-2 bg-white rounded-xl outline-none text-xs"
+                              value={item.description}
+                              onChange={e => handleUpdateBillItem(index, 'description', e.target.value)}
+                            />
+                         </div>
+                         <div className="col-span-1">
+                            <input 
+                              type="number" 
+                              placeholder="Qty" 
+                              className="w-full px-3 py-2 bg-white rounded-xl outline-none text-xs"
+                              value={item.quantity}
+                              onChange={e => handleUpdateBillItem(index, 'quantity', Number(e.target.value))}
+                            />
+                         </div>
+                         <div className="col-span-2">
+                            <input 
+                              type="number" 
+                              placeholder="Price" 
+                              className="w-full px-3 py-2 bg-white rounded-xl outline-none text-xs"
+                              value={item.unitPrice}
+                              onChange={e => handleUpdateBillItem(index, 'unitPrice', Number(e.target.value))}
+                            />
+                         </div>
+                         <div className="col-span-1 flex items-center justify-center font-black text-[#0B3C5D] text-xs">
+                            {item.total.toLocaleString()}
+                         </div>
+                         <div className="col-span-1 flex items-center justify-center">
+                            <button onClick={() => handleRemoveBillItem(index)} className="text-red-400 hover:text-red-600 transition-colors">
+                               <X size={16} />
+                            </button>
+                         </div>
+                      </div>
+                   ))}
+                </div>
+             </div>
+
+             <div className="flex justify-between items-end bg-gray-100 p-8 rounded-3xl">
+                <div>
+                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Grand Total Payable</p>
+                   <p className="text-4xl font-black text-[#0B3C5D]">GH₵ {calculateBillTotal().toLocaleString()}</p>
+                </div>
+                <button onClick={handleAddBill} className="px-12 py-5 bg-[#0B3C5D] text-white font-black rounded-2xl shadow-xl shadow-blue-900/10 hover:bg-black transition-all">
+                   COMMIT TO ACCOUNTS PAYABLE
+                </button>
+             </div>
           </div>
         </div>
       )}
