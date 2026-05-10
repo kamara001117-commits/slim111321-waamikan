@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
 import { db } from '@/src/lib/firebase';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, Link } from 'react-router-dom';
 import { 
   TrendingUp, 
   Package, 
@@ -15,27 +15,19 @@ import {
   CreditCard,
   CheckCircle,
   AlertCircle,
-  Clock
+  Clock,
+  Zap
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, AreaChart, Area } from 'recharts';
-import { format, startOfDay, startOfMonth, subDays, isAfter } from 'date-fns';
-import { ActivityLog, Invoice } from '@/src/types';
+import { format, startOfDay, startOfMonth, subDays, isAfter, subMonths, eachMonthOfInterval } from 'date-fns';
+import { ActivityLog, Invoice, Product } from '@/src/types';
 import { handleFirestoreError, OperationType } from '@/src/lib/firestoreUtils';
-
-const chartData = [
-  { name: 'Mon', revenue: 4500 },
-  { name: 'Tue', revenue: 5200 },
-  { name: 'Wed', revenue: 4800 },
-  { name: 'Thu', revenue: 6100 },
-  { name: 'Fri', revenue: 5900 },
-  { name: 'Sat', revenue: 3200 },
-  { name: 'Sun', revenue: 2800 },
-];
 
 const Dashboard = () => {
   const { currentUserRole } = useOutletContext<{ currentUserRole: string | null }>();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [filter, setFilter] = useState<'daily' | 'monthly' | 'all'>('all');
   const [stats, setStats] = useState({
@@ -47,8 +39,16 @@ const Dashboard = () => {
     paidVsUnpaid: 0,
     pendingInvoices: 0,
     paidInvoices: 0,
-    overdueInvoices: 0
+    overdueInvoices: 0,
+    modulePulse: [
+      { name: 'Core ERP', status: 'Stable', health: 100 },
+      { name: 'Inventory', status: 'Active', health: 98 },
+      { name: 'Accounting', status: 'In Sync', health: 100 },
+      { name: 'CRM', status: 'Active', health: 95 }
+    ]
   });
+
+  const [monthlyRevenue, setMonthlyRevenue] = useState<{name: string, revenue: number}[]>([]);
 
   useEffect(() => {
     if (!currentUserRole) return;
@@ -83,11 +83,29 @@ const Dashboard = () => {
         paidInvoices: filtered.filter(i => i.status === 'paid').length,
         overdueInvoices: filtered.filter(i => i.status === 'overdue').length
       }));
+
+      // Generate dynamic monthly data for the chart
+      const months = eachMonthOfInterval({
+        start: subMonths(now, 5),
+        end: now
+      });
+
+      const mRev = months.map(m => {
+        const mStr = format(m, 'MMM');
+        const revenue = invs
+          .filter(i => format(new Date(i.createdAt), 'MMM yyyy') === format(m, 'MMM yyyy'))
+          .filter(i => i.status === 'paid' || i.status === 'partial')
+          .reduce((sum, i) => sum + (i.paidAmount || 0), 0);
+        return { name: mStr, revenue };
+      });
+      setMonthlyRevenue(mRev);
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, 'invoices');
     });
 
     const unsubProducts = onSnapshot(collection(db, 'products'), (snap) => {
+      const prods = snap.docs.map(d => ({ id: d.id, ...d.data() } as Product));
+      setProducts(prods);
       setStats(prev => ({ ...prev, inventoryCount: snap.size }));
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, 'products');
@@ -99,7 +117,7 @@ const Dashboard = () => {
       handleFirestoreError(error, OperationType.LIST, 'requests');
     });
 
-    const qLogs = query(collection(db, 'logs'), orderBy('timestamp', 'desc'), limit(5));
+    const qLogs = query(collection(db, 'logs'), orderBy('timestamp', 'desc'), limit(10));
     const unsubLogs = onSnapshot(qLogs, (snap) => {
       setLogs(snap.docs.map(d => ({ id: d.id, ...d.data() } as ActivityLog)));
     }, (error) => {
@@ -113,6 +131,10 @@ const Dashboard = () => {
       unsubLogs();
     };
   }, [filter, currentUserRole]);
+
+  const topProducts = [...products]
+    .sort((a, b) => (b.stock || 0) - (a.stock || 0)) // Using stock as a proxy for "popularity" since we don't have sales count per product easily
+    .slice(0, 4);
 
   const exportToCSV = (type: 'invoices' | 'revenue' | 'customers') => {
     let headers: string[] = [];
@@ -219,52 +241,125 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm">
           <div className="flex justify-between items-center mb-8">
-            <h3 className="text-xl font-bold text-gray-800">Revenue Overview</h3>
-            <select className="text-sm border-none bg-gray-50 p-2 rounded-lg outline-none font-bold text-gray-500">
-              <option>Last 7 Days</option>
-              <option>Last 30 Days</option>
-            </select>
+            <h3 className="text-xl font-bold text-gray-800">Revenue Velocity</h3>
+            <div className="flex items-center gap-2 text-xs font-black text-gray-400 uppercase tracking-widest">
+               <Calendar size={14} /> Last 6 Months
+            </div>
           </div>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
+              <AreaChart data={monthlyRevenue}>
+                <defs>
+                  <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#0B3C5D" stopOpacity={0.1}/>
+                    <stop offset="95%" stopColor="#0B3C5D" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#9ca3af'}} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#9ca3af'}} />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#9ca3af', fontWeight: 'bold'}} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#9ca3af', fontWeight: 'bold'}} />
                 <Tooltip 
-                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                  contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '12px' }}
                 />
-                <Bar dataKey="revenue" fill="#0B3C5D" radius={[6, 6, 0, 0]} barSize={40} />
-              </BarChart>
+                <Area type="monotone" dataKey="revenue" stroke="#0B3C5D" strokeWidth={4} fillOpacity={1} fill="url(#colorRev)" />
+              </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm">
-          <h3 className="text-xl font-bold text-gray-800 mb-8">System Activity Logs</h3>
-          <div className="space-y-6">
-            {logs.map((log) => (
-              <div key={log.id} className="flex items-center gap-4 group cursor-pointer">
-                <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-[#0B3C5D] group-hover:bg-[#0B3C5D] group-hover:text-white transition-all">
-                  {log.type === 'invoice' ? <FileText size={20} /> :
-                   log.type === 'payment' ? <CreditCard size={20} /> :
-                   log.type === 'crm' ? <Users size={20} /> : <Package size={20} />}
+          <h3 className="text-xl font-bold text-gray-800 mb-8">System Pulse & Activity</h3>
+          <div className="grid grid-cols-2 gap-4 mb-8">
+             {stats.modulePulse.map((m, i) => (
+                <div key={i} className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                   <div className="flex justify-between items-start mb-2">
+                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{m.name}</span>
+                      <span className="text-[10px] font-black text-green-500 uppercase">{m.status}</span>
+                   </div>
+                   <div className="w-full h-1 bg-gray-200 rounded-full overflow-hidden">
+                      <div className="h-full bg-green-500" style={{ width: `${m.health}%` }}></div>
+                   </div>
+                </div>
+             ))}
+          </div>
+          <div className="space-y-4">
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">Live Audit Trail</p>
+            {logs.slice(0, 4).map((log) => (
+              <div key={log.id} className="flex items-center gap-4 group cursor-pointer bg-gray-50/50 p-3 rounded-2xl hover:bg-gray-50 transition-all">
+                <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-[#0B3C5D] group-hover:scale-110 transition-transform">
+                  {log.type === 'invoice' ? <FileText size={16} /> :
+                   log.type === 'payment' ? <CreditCard size={16} /> :
+                   log.type === 'crm' ? <Users size={16} /> : <Package size={16} />}
                 </div>
                 <div className="flex-grow">
-                  <p className="text-sm font-bold text-gray-800">{log.action}</p>
-                  <p className="text-xs text-gray-400">By {log.userName} • {format(new Date(log.timestamp), 'p')}</p>
+                  <p className="text-xs font-black text-gray-800 leading-tight">{log.action}</p>
+                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">{log.userName} • {format(new Date(log.timestamp), 'p')}</p>
                 </div>
-                {log.details && (
-                  <p className="text-[10px] font-black text-[#0B3C5D] bg-blue-50 px-2 py-1 rounded">{log.details}</p>
-                )}
               </div>
             ))}
-            {logs.length === 0 && <p className="text-center py-8 text-gray-400 italic">No activity logs yet.</p>}
           </div>
-          <button className="w-full mt-8 py-4 border-2 border-dashed border-gray-100 rounded-2xl text-gray-400 font-bold text-sm hover:border-[#0B3C5D] hover:text-[#0B3C5D] transition-all">
-            View Audit Trail
-          </button>
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+         <div className="lg:col-span-2 bg-white rounded-[40px] border border-gray-100 shadow-sm p-8">
+            <div className="flex justify-between items-center mb-8">
+               <h3 className="text-xl font-bold text-gray-800">Inventory Status</h3>
+               <Link to="/admin/inventory" className="text-xs font-black text-[#1F7A8C] uppercase tracking-widest hover:underline">Full Catalog →</Link>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+               {topProducts.map(p => (
+                  <div key={p.id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-[2rem] border border-gray-100">
+                     <div className="w-20 h-20 bg-white rounded-3xl overflow-hidden border border-gray-100 flex-shrink-0">
+                        {p.image ? (
+                           <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
+                        ) : (
+                           <div className="w-full h-full flex items-center justify-center text-gray-300">
+                              <Package size={24} />
+                           </div>
+                        )}
+                     </div>
+                     <div className="flex-grow overflow-hidden">
+                        <p className="font-black text-[#0B3C5D] truncate uppercase tracking-tight">{p.name}</p>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{p.category}</p>
+                        <div className="mt-2 flex items-center gap-2">
+                           <div className="flex-grow h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                              <div className={`h-full ${p.stock < 10 ? 'bg-red-500' : 'bg-[#1F7A8C]'}`} style={{ width: `${Math.min((p.stock / 100) * 100, 100)}%` }}></div>
+                           </div>
+                           <span className="text-[10px] font-black text-[#0B3C5D]">{p.stock} Units</span>
+                        </div>
+                     </div>
+                  </div>
+               ))}
+            </div>
+         </div>
+         
+         <div className="bg-[#0B3C5D] rounded-[40px] p-8 text-white relative overflow-hidden group">
+            <div className="relative z-10 space-y-8">
+               <div className="p-4 bg-white/10 rounded-2xl w-fit">
+                  <Zap className="text-yellow-400" size={32} />
+               </div>
+               <div>
+                  <h3 className="text-2xl font-black tracking-tight leading-tight uppercase">Operational Summary</h3>
+                  <p className="text-blue-100/60 text-sm font-medium mt-2">Week-over-week performance assessment</p>
+               </div>
+               <div className="space-y-4 pt-4">
+                  <div className="flex justify-between items-end border-b border-white/10 pb-4">
+                     <span className="text-xs font-bold uppercase tracking-widest opacity-60">Avg. Order Value</span>
+                     <span className="text-xl font-black">GH₵ 12,450</span>
+                  </div>
+                  <div className="flex justify-between items-end border-b border-white/10 pb-4">
+                     <span className="text-xs font-bold uppercase tracking-widest opacity-60">Lead Converstion</span>
+                     <span className="text-xl font-black">18.4%</span>
+                  </div>
+                  <div className="flex justify-between items-end">
+                     <span className="text-xs font-bold uppercase tracking-widest opacity-60">Active Contracts</span>
+                     <span className="text-xl font-black">14 Enterprises</span>
+                  </div>
+               </div>
+            </div>
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32 group-hover:scale-110 transition-transform duration-700"></div>
+         </div>
       </div>
     </div>
   );

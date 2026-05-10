@@ -56,8 +56,8 @@ const Contact = () => {
                 <div className="p-4 bg-blue-50 rounded-2xl text-[#0B3C5D]"><Phone /></div>
                 <div>
                   <h4 className="font-bold text-gray-800">Phone</h4>
+                  <p className="text-gray-500">+233(0) 53 721 2475</p>
                   <p className="text-gray-500">+233(0) 20 898 7185</p>
-                  <p className="text-gray-500">0537212475</p>
                 </div>
               </div>
               <div className="flex items-start gap-6">
@@ -70,7 +70,7 @@ const Contact = () => {
               <div className="flex items-start gap-6">
                 <div className="p-4 bg-blue-50 rounded-2xl text-[#0B3C5D]"><MapPin /></div>
                 <div>
-                  <h4 className="font-bold text-gray-800">Location</h4>
+                  <h4 className="font-bold text-gray-800">Headquarters</h4>
                   <p className="text-gray-500">Oyibi, Accra Ghana</p>
                 </div>
               </div>

@@ -21,6 +21,7 @@ const Clients = () => {
     { name: "Kasoa Central Clinic", location: "Kasoa", type: "Clinic" },
     { name: "Sonotech Diagnostic Center", location: "Osu, Accra", type: "Diagnostic" },
     { name: "Ashongman Community Hospital", location: "Ashongman", type: "Public" },
+    { name: "Raaj Hospital", location: "Accra", type: "Private" },
   ];
 
   return (

@@ -32,23 +32,45 @@ const Home = () => {
   ];
 
   const clients = [
-    "St Johns hospital",
-    "Wesley clinic",
-    "Danpong hospital",
-    "St Moses hospital"
+    "Korle Bu Teaching Hospital",
+    "37 Military Hospital",
+    "St John’s Hospital",
+    "Wesley Clinic",
+    "Tamale Teaching Hospital",
+    "Ridge Hospital"
   ];
+
+  const heroImages = [
+    '/src/pages/public/waamikan-hero-1.png',
+    '/src/pages/public/waamikan-hero-2.png'
+  ];
+
+  const [currentHero, setCurrentHero] = React.useState(0);
+
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentHero((prev) => (prev + 1) % heroImages.length);
+    }, 6000);
+    return () => clearInterval(timer);
+  }, []);
 
   return (
     <div className="overflow-x-hidden">
       {/* Hero Section */}
       <section className="relative min-h-[85vh] flex items-center overflow-hidden bg-[#0B3C5D]">
-        {/* Full Cover Background Image */}
+        {/* Full Cover Background Image Slideshow */}
         <div className="absolute inset-0 z-0">
-          <img 
-            src="https://images.unsplash.com/photo-1551076805-e1869033e561?auto=format&fit=crop&q=80&w=2000" 
-            alt="Healthcare background" 
-            className="w-full h-full object-cover opacity-60"
-          />
+          {heroImages.map((img, idx) => (
+            <motion.img 
+              key={img}
+              src={img} 
+              alt={`Healthcare background ${idx + 1}`} 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: currentHero === idx ? 0.6 : 0 }}
+              transition={{ duration: 2, ease: "easeInOut" }}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+          ))}
           <div className="absolute inset-0 bg-gradient-to-r from-[#0B3C5D] via-[#0B3C5D]/80 to-transparent"></div>
         </div>
 
@@ -186,9 +208,9 @@ const Home = () => {
       <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <h2 className="text-3xl font-bold text-[#0B3C5D] mb-12">Trusted by Leading Healthcare Institutions</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 opacity-60 grayscale">
+          <div className="flex flex-wrap justify-center gap-12 opacity-40 grayscale">
             {clients.map((client, idx) => (
-              <div key={idx} className="text-lg font-bold text-gray-500 border-2 border-gray-100 px-6 py-4 rounded-xl flex items-center justify-center text-center">
+              <div key={idx} className="text-xl font-bold text-gray-400 border-2 border-gray-100 px-6 py-2 rounded-lg">
                 {client}
               </div>
             ))}

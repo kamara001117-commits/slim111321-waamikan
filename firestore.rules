@@ -17,9 +17,21 @@ service cloud.firestore {
     function hasRole(role) { 
       return isSignedIn() && getUserRole() == role; 
     }
+    
     function isSuperAdmin() { return hasRole('super_admin'); }
     function isAdmin() { return hasRole('admin') || isSuperAdmin(); }
-    function isStaff() { return hasRole('staff') || isAdmin(); }
+    function isStaff() { 
+      let role = getUserRole();
+      return isSignedIn() && (
+        role == 'staff' || 
+        role == 'admin' || 
+        role == 'super_admin' || 
+        role == 'finance_manager' || 
+        role == 'inventory_manager' || 
+        role == 'sales_staff' || 
+        role == 'hr_staff'
+      );
+    }
     
     function isValidId(id) { 
       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
@@ -27,7 +39,118 @@ service cloud.firestore {
     function incoming() { return request.resource.data; }
     function existing() { return resource.data; }
 
-    // --- Collection Rules ---
+    // --- Enterprise Security Blueprints ---
+
+    function isValidAccount(data) {
+      return data.keys().hasAll(['code', 'name', 'type', 'balance']) &&
+             data.code is string && data.name is string && data.balance is number;
+    }
+
+    function isValidJournalEntry(data) {
+      return data.keys().hasAll(['date', 'reference', 'description', 'lines', 'status']) &&
+             data.date is string && data.lines is list && data.lines.size() > 0;
+    }
+
+    // --- ERP Collection Rules ---
+
+    // Settings
+    match /settings/{settingId} {
+      allow read: if isStaff();
+      allow write: if isAdmin();
+    }
+
+    // Accounting & Journal
+    match /accounts/{accountId} {
+      allow read: if isStaff();
+      allow write: if isAdmin();
+      allow update: if isStaff() && incoming().diff(existing()).affectedKeys().hasOnly(['balance', 'updatedAt']);
+    }
+
+    match /journal_entries/{entryId} {
+      allow read: if isStaff();
+      allow create: if isStaff();
+      allow update: if isAdmin(); // Only admins can modify posted journals
+    }
+
+    // Banking
+    match /bank_accounts/{accountId} {
+      allow read: if isStaff();
+      allow write: if isAdmin();
+    }
+
+    match /bank_transactions/{txId} {
+      allow read: if isStaff();
+      allow create, update: if isStaff();
+    }
+
+    // Procurement
+    match /suppliers/{supplierId} {
+      allow read: if isStaff();
+      allow write: if isStaff();
+    }
+
+    match /purchase_quotes/{quoteId} {
+      allow read, write: if isStaff();
+    }
+
+    match /purchase_orders/{poId} {
+      allow read: if isStaff();
+      allow write: if isStaff();
+    }
+
+    match /supplier_bills/{billId} {
+      allow read: if isStaff();
+      allow write: if isStaff();
+    }
+
+    match /goods_receipts/{receiptId} {
+      allow read, write: if isStaff();
+    }
+
+    match /debit_notes/{noteId} {
+      allow read, write: if isStaff();
+    }
+
+    // Logistics
+    match /waybills/{waybillId} {
+      allow read, write: if isStaff();
+    }
+
+    // Inventory & Warehouse
+    match /inventory_locations/{locId} {
+      allow read: if isStaff();
+      allow write: if isAdmin();
+    }
+
+    match /inventory_movements/{moveId} {
+      allow read: if isStaff();
+      allow create: if isStaff();
+    }
+
+    // Human Resources
+    match /employees/{empId} {
+      allow read: if isStaff();
+      allow write: if isAdmin();
+    }
+
+    match /payroll/{payId} {
+      allow read: if isStaff();
+      allow create, update: if isAdmin();
+    }
+
+    match /expense_claims/{claimId} {
+      allow read: if isStaff();
+      allow create: if isSignedIn();
+      allow update: if isStaff();
+    }
+
+    // Sales Operations
+    match /sales_documents/{docId} {
+      allow read: if isStaff();
+      allow create, update: if isStaff();
+    }
+
+    // --- Core System Collections (Restated) ---
 
     // USERS: Profile management
     match /users/{userId} {

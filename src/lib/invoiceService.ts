@@ -14,9 +14,67 @@ import {
 } from 'firebase/firestore';
 import { db, auth } from './firebase';
 import { Invoice, Payment, Receipt, PaymentMethod, Product } from '../types';
-import { generateAndUploadReceiptPDF } from './documentService';
+import { generateAndUploadReceiptPDF, generateAndUploadInvoicePDF } from './documentService';
 import { logActivity } from './activity';
 import { withRetry } from './firestoreUtils';
+import { recordInvoiceAccounting, recordPaymentAccounting } from './accountingService';
+
+export const createInvoice = async (invoiceData: Omit<Invoice, 'id' | 'invoiceNumber' | 'createdAt' | 'updatedAt' | 'total' | 'subtotal' | 'vat' | 'remainingBalance' | 'paidAmount'>, isWebOrder: boolean = false) => {
+  // If not a web order, check auth
+  if (!isWebOrder && !auth.currentUser) throw new Error("Unauthorized");
+
+  const subtotal = invoiceData.items.reduce((sum, item) => sum + item.total, 0);
+  const vat = invoiceData.vat || 0; 
+  const total = subtotal + vat;
+
+  // 1. Get next invoice number
+  const q = query(collection(db, 'invoices'), orderBy('createdAt', 'desc'), limit(1));
+  const snap = await getDocs(q);
+  let nextNum = 1;
+  if (!snap.empty) {
+    const lastNum = snap.docs[0].data().invoiceNumber;
+    const match = lastNum.match(/(\d+)$/);
+    if (match) nextNum = parseInt(match[0]) + 1;
+  }
+  const prefix = isWebOrder ? 'WAAM-WEB' : 'WAAM-INV';
+  const invoiceNumber = `${prefix}-${nextNum.toString().padStart(4, '0')}`;
+
+  const payload: Omit<Invoice, 'id'> = {
+    ...invoiceData,
+    invoiceNumber,
+    subtotal,
+    vat,
+    total,
+    paidAmount: 0,
+    remainingBalance: total,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  const docRef = await addDoc(collection(db, 'invoices'), payload);
+  const finalInvoice = { id: docRef.id, ...payload } as Invoice;
+
+  // 2. Accounting logic
+  await recordInvoiceAccounting(docRef.id, total);
+
+  // 3. Update Inventory if needed (for web orders we usually deduct immediately)
+  if (isWebOrder) {
+    for (const item of invoiceData.items) {
+      const productRef = doc(db, 'products', item.productId);
+      await updateDoc(productRef, {
+        stock: increment(-item.quantity)
+      });
+    }
+  }
+
+  // 4. Generate PDF
+  const pdfUrl = await generateAndUploadInvoicePDF(finalInvoice);
+  await updateDoc(doc(db, 'invoices', docRef.id), { pdfUrl });
+
+  await logActivity('invoice', `Created ${isWebOrder ? 'web order' : 'invoice'} ${invoiceNumber}`, docRef.id, `Total: GH₵ ${total}`);
+
+  return finalInvoice;
+};
 
 export const recordPayment = async (
   invoiceId: string, 
@@ -160,6 +218,9 @@ export const recordPayment = async (
     
     await logActivity('payment', `Recorded payment of GH₵ ${result.amount}`, result.invoice.id, `Invoice: ${result.invoice.invoiceNumber}`);
     
+    // Add Accounting Entry
+    await recordPaymentAccounting(result.paymentId, result.invoice.id, result.amount, result.method);
+
     return { ...result, pdfUrl };
     });
   });

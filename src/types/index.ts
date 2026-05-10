@@ -1,4 +1,4 @@
-export type UserRole = 'super_admin' | 'admin' | 'staff';
+export type UserRole = 'super_admin' | 'admin' | 'staff' | 'finance_manager' | 'inventory_manager' | 'sales_staff' | 'hr_staff';
 
 export interface AppUser {
   uid: string;
@@ -12,7 +12,7 @@ export interface AppUser {
 export interface Product {
   id: string;
   name: string;
-  category: 'Consumables' | 'Imaging' | 'Equipment' | 'Furniture' | 'Life Support';
+  category: 'Consumables' | 'Imaging' | 'Equipment' | 'Furniture' | 'Life Support' | 'IVD' | 'Treatment';
   description: string;
   price: number;
   stock: number;

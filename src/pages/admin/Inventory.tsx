@@ -275,9 +275,11 @@ const Inventory = () => {
             <option>All</option>
             <option>Consumables</option>
             <option>Imaging</option>
+            <option>IVD</option>
             <option>Equipment</option>
             <option>Furniture</option>
             <option>Life Support</option>
+            <option>Treatment</option>
           </select>
           
           <button 
@@ -491,9 +493,11 @@ const Inventory = () => {
                       >
                         <option>Consumables</option>
                         <option>Imaging</option>
+                        <option>IVD</option>
                         <option>Equipment</option>
                         <option>Furniture</option>
                         <option>Life Support</option>
+                        <option>Treatment</option>
                       </select>
                     </div>
                     <div className="space-y-2">

@@ -132,6 +132,194 @@
         "type": { "type": "string" },
         "timestamp": { "type": "string" }
       }
+    },
+    "account": {
+      "title": "Chart of Accounts",
+      "description": "General ledger accounts",
+      "type": "object",
+      "properties": {
+         "code": { "type": "string" },
+         "name": { "type": "string" },
+         "type": { "type": "string" },
+         "balance": { "type": "number" }
+      }
+    },
+    "journalEntry": {
+      "title": "Journal Entry",
+      "description": "Double-entry bookkeeping record",
+      "type": "object",
+      "properties": {
+         "date": { "type": "string" },
+         "reference": { "type": "string" },
+         "description": { "type": "string" },
+         "lines": { "type": "array" },
+         "status": { "type": "string" }
+      }
+    },
+    "bankAccount": {
+       "title": "Bank Account",
+       "description": "Company bank or cash account",
+       "type": "object",
+       "properties": {
+          "name": { "type": "string" },
+          "bankName": { "type": "string" },
+          "balance": { "type": "number" }
+       }
+    },
+    "bankTransaction": {
+       "title": "Bank Transaction",
+       "description": "Cash flow record",
+       "type": "object",
+       "properties": {
+          "amount": { "type": "number" },
+          "type": { "type": "string" },
+          "description": { "type": "string" }
+       }
+    },
+    "supplier": {
+       "title": "Supplier",
+       "description": "Vendor for procurement",
+       "type": "object",
+       "properties": {
+          "name": { "type": "string" },
+          "balance": { "type": "number" }
+       }
+    },
+    "purchaseOrder": {
+       "title": "Purchase Order",
+       "description": "Inventory purchase request",
+       "type": "object",
+       "properties": {
+          "poNumber": { "type": "string" },
+          "total": { "type": "number" },
+          "status": { "type": "string" }
+       }
+    },
+    "supplierBill": {
+       "title": "Supplier Bill",
+       "description": "Vendor invoice (payable)",
+       "type": "object",
+       "properties": {
+          "billNumber": { "type": "string" },
+          "total": { "type": "number" },
+          "status": { "type": "string" }
+       }
+    },
+    "inventoryLocation": {
+       "title": "Inventory Location",
+       "description": "Warehouse or storage area",
+       "type": "object",
+       "properties": {
+          "name": { "type": "string" },
+          "code": { "type": "string" }
+       }
+    },
+    "inventoryMovement": {
+       "title": "Inventory Movement",
+       "description": "Stock flow record",
+       "type": "object",
+       "properties": {
+          "quantity": { "type": "number" },
+          "type": { "type": "string" }
+       }
+    },
+    "employee": {
+       "title": "Employee",
+       "description": "Staff member profile",
+       "type": "object",
+       "properties": {
+          "firstName": { "type": "string" },
+          "lastName": { "type": "string" },
+          "position": { "type": "string" }
+       }
+    },
+    "payroll": {
+       "title": "Payroll",
+       "description": "Salary disbursement record",
+       "type": "object",
+       "properties": {
+          "month": { "type": "string" },
+          "netPay": { "type": "number" }
+       }
+    },
+    "expenseClaim": {
+       "title": "Expense Claim",
+       "description": "Employee reimbursement request",
+       "type": "object",
+       "properties": {
+          "amount": { "type": "number" },
+          "status": { "type": "string" }
+       }
+    },
+    "salesDocument": {
+       "title": "Sales Document",
+       "description": "Quotation, Sales Order, or Delivery Note",
+       "type": "object",
+       "properties": {
+          "docNumber": { "type": "string" },
+          "type": { "type": "string" },
+          "total": { "type": "number" }
+       }
+    },
+    "purchaseQuote": {
+       "title": "Purchase Quote",
+       "description": "Supplier pricing request",
+       "type": "object",
+       "properties": {
+          "quoteNumber": { "type": "string" },
+          "supplierId": { "type": "string" },
+          "total": { "type": "number" }
+       }
+    },
+    "goodsReceipt": {
+       "title": "Goods Receipt",
+       "description": "Record of physical goods arrival",
+       "type": "object",
+       "properties": {
+          "receiptNumber": { "type": "string" },
+          "poId": { "type": "string" },
+          "items": { "type": "array" }
+       }
+    },
+    "debitNote": {
+       "title": "Debit Note",
+       "description": "Supplier adjustment / Returns",
+       "type": "object",
+       "properties": {
+          "noteNumber": { "type": "string" },
+          "supplierId": { "type": "string" },
+          "amount": { "type": "number" }
+       }
+    },
+    "waybill": {
+       "title": "Waybill",
+       "description": "Logistics and transport tracking",
+       "type": "object",
+       "properties": {
+          "waybillNumber": { "type": "string" },
+          "deliveryNoteId": { "type": "string" },
+          "status": { "type": "string" }
+       }
+    },
+    "payslip": {
+       "title": "Payslip",
+       "description": "Employee monthly salary breakdown",
+       "type": "object",
+       "properties": {
+          "employeeId": { "type": "string" },
+          "month": { "type": "string" },
+          "netPay": { "type": "number" },
+          "journalEntryId": { "type": "string" }
+       }
+    },
+    "setting": {
+       "title": "System Setting",
+       "description": "Configuration and profiles",
+       "type": "object",
+       "properties": {
+          "key": { "type": "string" },
+          "value": { "type": "object" }
+       }
     }
   },
   "firestore": {
@@ -170,6 +358,82 @@
     "/counters/{counterId}": {
       "schema": "object",
       "description": "System counters for sequences"
+    },
+    "/accounts/{accountId}": {
+      "schema": "account",
+      "description": "Chart of accounts"
+    },
+    "/journal_entries/{entryId}": {
+      "schema": "journalEntry",
+      "description": "Accounting journal"
+    },
+    "/bank_accounts/{bankAccountId}": {
+      "schema": "bankAccount",
+      "description": "Company bank accounts"
+    },
+    "/bank_transactions/{transactionId}": {
+      "schema": "bankTransaction",
+      "description": "Bank account transactions"
+    },
+    "/suppliers/{supplierId}": {
+      "schema": "supplier",
+      "description": "Vendor list"
+    },
+    "/purchase_orders/{poId}": {
+      "schema": "purchaseOrder",
+      "description": "Inventory purchase orders"
+    },
+    "/purchase_quotes/{quoteId}": {
+      "schema": "purchaseQuote",
+      "description": "Request for pricing"
+    },
+    "/goods_receipts/{receiptId}": {
+      "schema": "goodsReceipt",
+      "description": "Physical receipt of goods"
+    },
+    "/debit_notes/{noteId}": {
+      "schema": "debitNote",
+      "description": "Supplier adjustments"
+    },
+    "/waybills/{waybillId}": {
+      "schema": "waybill",
+      "description": "Shipping documents"
+    },
+    "/payslips/{payslipId}": {
+      "schema": "payslip",
+      "description": "Monthly payroll records"
+    },
+    "/settings/{settingId}": {
+      "schema": "setting",
+      "description": "App configuration"
+    },
+    "/supplier_bills/{billId}": {
+      "schema": "supplierBill",
+      "description": "Accounts payable bills"
+    },
+    "/inventory_locations/{locationId}": {
+      "schema": "inventoryLocation",
+      "description": "Warehouse locations"
+    },
+    "/inventory_movements/{movementId}": {
+      "schema": "inventoryMovement",
+      "description": "Stock movement logs"
+    },
+    "/employees/{employeeId}": {
+      "schema": "employee",
+      "description": "Human resources"
+    },
+    "/payroll/{payrollId}": {
+      "schema": "payroll",
+      "description": "Salary records"
+    },
+    "/expense_claims/{claimId}": {
+      "schema": "expenseClaim",
+      "description": "Staff expenses"
+    },
+    "/sales_documents/{docId}": {
+      "schema": "salesDocument",
+      "description": "Sales workflow documents"
     }
   }
 }

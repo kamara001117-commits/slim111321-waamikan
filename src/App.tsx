@@ -22,6 +22,16 @@ import Staff from '@/src/pages/admin/Staff';
 import CRM from '@/src/pages/admin/CRM';
 import Analytics from '@/src/pages/admin/Analytics';
 import Customers from '@/src/pages/admin/Customers';
+import Accounting from '@/src/pages/admin/erp/Accounting';
+import Banking from '@/src/pages/admin/erp/Banking';
+import Procurement from '@/src/pages/admin/erp/Procurement';
+import HR from '@/src/pages/admin/erp/HR';
+import Warehouse from '@/src/pages/admin/erp/Warehouse';
+import Reports from '@/src/pages/admin/erp/Reports';
+import Sales from '@/src/pages/admin/erp/Sales';
+import DocumentCenter from '@/src/pages/admin/erp/DocumentCenter';
+import Logistics from '@/src/pages/admin/Logistics';
+import Settings from '@/src/pages/admin/Settings';
 import { CartProvider } from '@/src/lib/CartContext';
 
 export default function App() {
@@ -66,6 +76,17 @@ export default function App() {
                   <Route path="customers" element={<Customers />} />
                   <Route path="crm" element={<CRM />} />
                   <Route path="analytics" element={<Analytics />} />
+                  {/* ERP Routes */}
+                  <Route path="erp/accounting" element={<Accounting />} />
+                  <Route path="erp/banking" element={<Banking />} />
+                  <Route path="erp/procurement" element={<Procurement />} />
+                  <Route path="erp/hr" element={<HR />} />
+                  <Route path="erp/warehouse" element={<Warehouse />} />
+                  <Route path="erp/reports" element={<Reports />} />
+                  <Route path="erp/sales" element={<Sales />} />
+                  <Route path="erp/documents" element={<DocumentCenter />} />
+                  <Route path="logistics" element={<Logistics />} />
+                  <Route path="settings" element={<Settings />} />
                 </Route>
 
               {/* Fallback */}

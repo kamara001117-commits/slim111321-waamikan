@@ -9,6 +9,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { generateAndUploadInvoicePDF } from '@/src/lib/documentService';
 import { logActivity } from '@/src/lib/activity';
+import { createInvoice } from '@/src/lib/invoiceService';
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -72,13 +73,10 @@ const Checkout = () => {
       }
 
       // 2. Prepare Invoice Data
-      const invoiceNumber = `WAAM-WEB-${Date.now().toString().slice(-6)}`;
       const subtotal = cartTotal;
       const vat = subtotal * 0.05;
-      const total = subtotal + vat;
 
-      const invoiceData: Omit<Invoice, 'id'> = {
-        invoiceNumber,
+      const invoiceData = {
         customerId,
         customerName: formData.hospital || formData.name,
         items: cart.map(item => ({
@@ -88,43 +86,22 @@ const Checkout = () => {
           unitPrice: item.price,
           total: item.price * item.quantity
         })),
-        subtotal,
         vat,
-        total,
-        paidAmount: 0,
-        remainingBalance: total,
-        status: 'sent',
+        status: 'sent' as const,
         dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
         userId: user?.uid || null
       };
 
-      // 3. Create Invoice
-      const invoiceRef = await addDoc(collection(db, 'invoices'), invoiceData);
-      const docId = invoiceRef.id;
-      
-      // 4. Update Inventory & Customer Stats
-      for (const item of cart) {
-        const productRef = doc(db, 'products', item.id);
-        await updateDoc(productRef, {
-          stock: increment(-item.quantity)
-        });
-      }
+      // 3. Create Invoice using Unified Service (handles PDF, Accounting, Inventory)
+      const finalInvoice = await createInvoice(invoiceData, true);
 
+      // 4. Final Customer update (incremental count)
       await updateDoc(doc(db, 'customers', customerId), {
         invoiceCount: increment(1)
       });
 
-      // 5. Generate PDF (Simulated/Background)
-      const finalInvoice = { id: docId, ...invoiceData } as Invoice;
-      const pdfUrl = await generateAndUploadInvoicePDF(finalInvoice);
-      await updateDoc(doc(db, 'invoices', docId), { pdfUrl });
-
-      await logActivity('invoice', `Web Order ${invoiceNumber} created`, docId, `By: ${formData.email}`);
-
       // SUCCESS
-      setOrderSuccess(invoiceNumber);
+      setOrderSuccess(finalInvoice.invoiceNumber);
       clearCart();
     } catch (error) {
       console.error("Order processing failed:", error);

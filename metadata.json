@@ -1,6 +1,6 @@
 {
   "name": "WAAMIKAN Enterprise",
-  "description": "Enterprise-grade medical supply platform for WAAMIKAN Enterprise, featuring medical supply inventory, invoicing, CRM, and a public corporate site inspired by McKesson.",
+  "description": "Full-scale Enterprise ERP for WAAMIKAN, featuring completed Procurement (Quotes, GRN, Debit Notes), Logistics (Waybills), Payroll, Banking Reconciliation, and Automated Double-Entry Accounting.",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }

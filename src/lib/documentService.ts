@@ -4,7 +4,7 @@ import { storage } from './firebase';
 import { Invoice, Payment, Receipt } from '../types';
 import { format } from 'date-fns';
 
-export const generateInvoiceDoc = (invoice: Invoice) => {
+export const generateAndUploadInvoicePDF = async (invoice: Invoice): Promise<string> => {
   const doc = new jsPDF();
   
   // Header - Enterprise Deep Blue
@@ -89,30 +89,14 @@ export const generateInvoiceDoc = (invoice: Invoice) => {
   doc.setTextColor(150, 150, 150);
   doc.text("This is an electronically generated document. No signature required.", 105, 280, { align: 'center' });
   doc.text("WAAMIKAN ENTERPRISE - Integrity in Healthcare Delivery", 105, 285, { align: 'center' });
-  return doc;
-};
-
-export const generateAndUploadInvoicePDF = async (invoice: Invoice): Promise<string> => {
-  const doc = generateInvoiceDoc(invoice);
-  const pdfBlob = doc.output('blob');
   
-  try {
-    const storageRef = ref(storage, `invoices/${invoice.invoiceNumber}.pdf`);
-    await uploadBytes(storageRef, pdfBlob);
-    return await getDownloadURL(storageRef);
-  } catch (error) {
-    console.warn("Storage upload failed, using local blob:", error);
-    return URL.createObjectURL(pdfBlob);
-  }
+  const pdfBlob = doc.output('blob');
+  const storageRef = ref(storage, `invoices/${invoice.invoiceNumber}.pdf`);
+  await uploadBytes(storageRef, pdfBlob);
+  return await getDownloadURL(storageRef);
 };
 
-export const printInvoice = (invoice: Invoice) => {
-  const doc = generateInvoiceDoc(invoice);
-  doc.autoPrint();
-  window.open(URL.createObjectURL(doc.output('blob')), '_blank');
-};
-
-export const generateReceiptDoc = (receipt: Receipt) => {
+export const generateAndUploadReceiptPDF = async (receipt: Receipt): Promise<string> => {
   const doc = new jsPDF();
   
   // Header - Teal Branding
@@ -182,25 +166,9 @@ export const generateReceiptDoc = (receipt: Receipt) => {
   doc.setTextColor(150, 150, 150);
   doc.text("Thank you for your business. For any billing inquiries, please contact our accounts department.", 105, 275, { align: 'center' });
   doc.text("WAAMIKAN ENTERPRISE - Partners in Health", 105, 282, { align: 'center' });
-  return doc;
-};
-
-export const generateAndUploadReceiptPDF = async (receipt: Receipt): Promise<string> => {
-  const doc = generateReceiptDoc(receipt);
-  const pdfBlob = doc.output('blob');
   
-  try {
-    const storageRef = ref(storage, `receipts/${receipt.receiptNumber}.pdf`);
-    await uploadBytes(storageRef, pdfBlob);
-    return await getDownloadURL(storageRef);
-  } catch (error) {
-    console.warn("Storage upload failed, using local blob:", error);
-    return URL.createObjectURL(pdfBlob);
-  }
-};
-
-export const printReceipt = (receipt: Receipt) => {
-  const doc = generateReceiptDoc(receipt);
-  doc.autoPrint();
-  window.open(URL.createObjectURL(doc.output('blob')), '_blank');
+  const pdfBlob = doc.output('blob');
+  const storageRef = ref(storage, `receipts/${receipt.receiptNumber}.pdf`);
+  await uploadBytes(storageRef, pdfBlob);
+  return await getDownloadURL(storageRef);
 };
