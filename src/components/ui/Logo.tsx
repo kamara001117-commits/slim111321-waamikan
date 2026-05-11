@@ -51,7 +51,7 @@ const Logo = ({ className = "h-14", dark = false, showText = true }: { className
     
     {showText && (
       <div className={`flex flex-col ${dark ? 'text-white' : 'text-[#0B3C5D]'} font-sans leading-none`}>
-        <span className="text-2xl font-black uppercase tracking-tighter">Waamikan</span>
+        <span className="text-xl sm:text-2xl font-black uppercase tracking-tighter">Waamikan</span>
         <div className="flex items-center gap-1">
           <span className={`h-1 flex-grow ${dark ? 'bg-blue-400' : 'bg-[#EAB308]'} rounded-full`} />
           <span className={`text-[7px] font-black uppercase tracking-[0.25em] ${dark ? 'text-blue-200' : 'text-[#1F7A8C]'}`}>

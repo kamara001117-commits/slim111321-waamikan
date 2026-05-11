@@ -17,17 +17,17 @@ const About = () => {
         <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <div className="space-y-8">
             <span className="text-[#EAB308] font-bold tracking-widest uppercase text-sm">Founded January 16, 2017</span>
-            <h1 className="text-5xl lg:text-7xl font-bold text-[#0B3C5D] leading-tight">
+            <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold text-[#0B3C5D] leading-tight">
               A Legacy of <br />
-              <span className="text-gray-400 font-light">Healthcare Excellence</span>
+              <span className="text-gray-400 font-light text-2xl sm:text-4xl lg:text-5xl">Healthcare Excellence</span>
             </h1>
-            <p className="text-xl text-gray-600 leading-relaxed max-w-lg">
+            <p className="text-lg sm:text-xl text-gray-600 leading-relaxed max-w-lg">
               WAAMIKAN Enterprise is specialized in the supply of medical products, its consumables, and general supply of goods and services.
             </p>
           </div>
           <div className="relative">
              <div className="rounded-[40px] overflow-hidden shadow-2xl">
-                <img src="https://images.unsplash.com/photo-1576091160550-2173bdb999ef?auto=format&fit=crop&q=80&w=1200" className="w-full h-[500px] object-cover" alt="Waamikan team" />
+                <img src="https://images.unsplash.com/photo-1576091160550-2173bdb999ef?auto=format&fit=crop&q=80&w=1200" className="w-full h-[300px] sm:h-[500px] object-cover" alt="Waamikan team" />
              </div>
              <div className="absolute -bottom-10 -left-10 bg-white p-8 rounded-3xl shadow-xl max-w-xs border border-gray-100 hidden lg:block">
                 <p className="text-2xl font-black text-[#0B3C5D]">9+ Years</p>
@@ -38,12 +38,12 @@ const About = () => {
       </section>
 
       {/* Mission/Vision */}
-      <section className="py-24 max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-2 gap-12">
+      <section className="py-24 max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="bg-[#0B3C5D] text-white p-12 rounded-[50px] space-y-6"
+          className="bg-[#0B3C5D] text-white p-8 sm:p-12 rounded-[50px] space-y-6"
         >
           <h2 className="text-3xl font-bold">Our Mission</h2>
           <p className="text-blue-100/70 text-lg leading-relaxed">

@@ -139,7 +139,7 @@ const Products = () => {
                 />
               </div>
 
-              <div className="flex-grow p-8 md:p-12 space-y-8 flex flex-col justify-center">
+              <div className="flex-grow p-6 md:p-12 space-y-8 flex flex-col justify-center">
                 <div>
                   <span className="px-4 py-1 bg-yellow-100 text-yellow-700 rounded-full text-[10px] font-black uppercase tracking-widest mb-4 inline-block">
                     {selectedProduct.category}

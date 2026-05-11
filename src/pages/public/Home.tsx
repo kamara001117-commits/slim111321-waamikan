@@ -84,19 +84,19 @@ const Home = () => {
               <span className="inline-block px-4 py-1 rounded-full bg-[#EAB308] text-[#0B3C5D] text-xs font-black uppercase tracking-widest mb-6">
                 Leading Medical Supplies in Ghana
               </span>
-              <h1 className="text-6xl lg:text-8xl font-black text-white leading-[0.95] mb-8 tracking-tighter">
+              <h1 className="text-4xl sm:text-6xl lg:text-8xl font-black text-white leading-[0.95] mb-8 tracking-tighter">
                 Advancing <br />
                 <span className="text-[#EAB308] italic font-light">Health Outcomes</span>
               </h1>
-              <p className="text-xl text-blue-50/80 mb-10 max-w-xl leading-relaxed font-medium">
+              <p className="text-lg sm:text-xl text-blue-50/80 mb-10 max-w-xl leading-relaxed font-medium">
                 We deliver transformative solutions that support providers in navigating complex care settings and equipping them for high-precision diagnostic and surgical success.
               </p>
-              <div className="flex flex-wrap gap-6">
-                <Link to="/products" className="bg-[#EAB308] text-[#0B3C5D] px-10 py-5 rounded-2xl font-black flex items-center gap-3 hover:scale-105 transition-all group shadow-2xl shadow-yellow-500/20">
+              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
+                <Link to="/products" className="bg-[#EAB308] text-[#0B3C5D] px-8 sm:px-10 py-4 sm:py-5 rounded-2xl font-black flex items-center justify-center gap-3 hover:scale-105 transition-all group shadow-2xl shadow-yellow-500/20">
                   Discover WAAMIKAN
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Link>
-                <Link to="/contact" className="bg-white/10 backdrop-blur-md text-white border border-white/20 px-10 py-5 rounded-2xl font-black hover:bg-white/20 transition-all">
+                <Link to="/contact" className="bg-white/10 backdrop-blur-md text-white border border-white/20 px-8 sm:px-10 py-4 sm:py-5 rounded-2xl font-black text-center hover:bg-white/20 transition-all">
                   Contact Specialist
                 </Link>
               </div>
@@ -126,8 +126,8 @@ const Home = () => {
       {/* Intro Section */}
       <section className="py-24 bg-[#F7FAFC]">
         <div className="max-w-4xl mx-auto px-4 text-center">
-          <h2 className="text-4xl font-bold text-[#0B3C5D] mb-8">Touching Virtually Every Aspect of Health</h2>
-          <p className="text-lg text-gray-600 leading-relaxed">
+          <h2 className="text-3xl sm:text-4xl font-bold text-[#0B3C5D] mb-8">Touching Virtually Every Aspect of Health</h2>
+          <p className="text-base sm:text-lg text-gray-600 leading-relaxed">
             As a diversified healthcare services leader, we help healthcare providers access transformative technologies, support providers in navigating complex care settings, and equip care settings with technologies that drive more effective treatments.
           </p>
         </div>
@@ -208,9 +208,9 @@ const Home = () => {
       <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <h2 className="text-3xl font-bold text-[#0B3C5D] mb-12">Trusted by Leading Healthcare Institutions</h2>
-          <div className="flex flex-wrap justify-center gap-12 opacity-40 grayscale">
+          <div className="flex flex-wrap justify-center gap-6 sm:gap-12 opacity-40 grayscale">
             {clients.map((client, idx) => (
-              <div key={idx} className="text-xl font-bold text-gray-400 border-2 border-gray-100 px-6 py-2 rounded-lg">
+              <div key={idx} className="text-sm sm:text-xl font-bold text-gray-400 border-2 border-gray-100 px-4 sm:px-6 py-1 sm:py-2 rounded-lg">
                 {client}
               </div>
             ))}

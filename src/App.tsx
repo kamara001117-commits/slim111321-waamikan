@@ -56,7 +56,7 @@ export default function App() {
   return (
     <CartProvider>
       <Router>
-        <div className="min-h-screen flex flex-col bg-[#F7FAFC]">
+        <div className="min-h-screen flex flex-col bg-[#F7FAFC] overflow-x-hidden">
           <Navbar />
           <main className="flex-grow">
             <Routes>

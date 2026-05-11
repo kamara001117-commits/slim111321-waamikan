@@ -76,7 +76,7 @@ export const Navbar = () => {
         <div className="flex justify-between h-20">
           <div className="flex items-center text-center">
             <Link to="/" className="flex-shrink-0 flex items-center justify-center">
-              <Logo className="h-20" />
+              <Logo className="h-14 sm:h-20" />
             </Link>
           </div>
 
@@ -249,7 +249,7 @@ export const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
           <div className="space-y-6">
             <Link to="/" className="flex items-center">
-              <Logo className="h-24" dark />
+              <Logo className="h-16 sm:h-24" dark />
             </Link>
             <p className="text-blue-100/70 text-sm leading-relaxed max-w-xs">
               Advancing healthcare solutions in Ghana and beyond. WAAMIKAN is committed to excellence in medical supplies and imaging technology.
