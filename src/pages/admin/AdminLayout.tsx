@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   LayoutDashboard, 
   Package, 
@@ -33,12 +34,35 @@ import { initializeSystemAccounts } from '@/src/lib/accountingService';
 
 
 const AdminLayout = () => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth >= 768);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [loading, setLoading] = useState(true);
   const [authorized, setAuthorized] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile) {
+        setIsSidebarOpen(false);
+      } else {
+        setIsSidebarOpen(true);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    // Automatically close sidebar on mobile when route changes
+    if (isMobile) {
+      setIsSidebarOpen(false);
+    }
+  }, [location.pathname, isMobile]);
 
   useEffect(() => {
     // Initialize accounting system accounts
@@ -139,11 +163,35 @@ const AdminLayout = () => {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
+      {/* Mobile Drawer Overlay */}
+      <AnimatePresence>
+        {isSidebarOpen && isMobile && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsSidebarOpen(false)}
+            className="fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-sm"
+          />
+        )}
+      </AnimatePresence>
+
       {/* Sidebar */}
-      <aside className={`bg-[#0B3C5D] text-white transition-all duration-300 ${isSidebarOpen ? 'w-64' : 'w-20'} hidden md:flex flex-col`}>
-        <div className="p-6 border-b border-white/10 flex justify-center">
-          <Logo dark className={isSidebarOpen ? "h-16" : "h-10"} />
+      <aside className={`
+        bg-[#0B3C5D] text-white transition-all duration-300 flex flex-col z-50
+        ${isSidebarOpen ? 'w-64' : 'w-20 -translate-x-full md:translate-x-0'} 
+        fixed inset-y-0 left-0 md:relative
+      `}>
+        <div className="p-6 border-b border-white/10 flex items-center justify-between">
+          <div className={`flex-grow flex justify-center ${!isSidebarOpen && 'md:justify-center'}`}>
+             <Logo dark className={isSidebarOpen || isMobile ? "h-16" : "h-10"} />
+          </div>
+          {isMobile && (
+            <button className="text-white/50 hover:text-white transition-colors" onClick={() => setIsSidebarOpen(false)}>
+              <X size={24} />
+            </button>
+          )}
         </div>
         
         <nav className="flex-grow py-6 px-4 space-y-8 overflow-y-auto custom-scrollbar">

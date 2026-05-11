@@ -19,7 +19,7 @@ import { logActivity } from './activity';
 import { withRetry } from './firestoreUtils';
 import { recordInvoiceAccounting, recordPaymentAccounting } from './accountingService';
 
-export const createInvoice = async (invoiceData: Omit<Invoice, 'id' | 'invoiceNumber' | 'createdAt' | 'updatedAt' | 'total' | 'subtotal' | 'vat' | 'remainingBalance' | 'paidAmount'>, isWebOrder: boolean = false) => {
+export const createInvoice = async (invoiceData: Omit<Invoice, 'id' | 'invoiceNumber' | 'createdAt' | 'updatedAt' | 'total' | 'subtotal' | 'vat' | 'remainingBalance' | 'paidAmount'> & { vat?: number }, isWebOrder: boolean = false) => {
   // If not a web order, check auth
   if (!isWebOrder && !auth.currentUser) throw new Error("Unauthorized");
 

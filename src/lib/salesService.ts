@@ -15,7 +15,7 @@ import {
 } from "firebase/firestore";
 import { db, auth } from "./firebase";
 import { Invoice, Product } from "../types";
-import { recordInvoiceAccounting } from "./accountingService";
+import { recordInvoiceAccounting, getAccountByCode } from "./accountingService";
 import { generateAndUploadInvoicePDF } from "./documentService";
 import { logActivity } from "./activity";
 
