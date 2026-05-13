@@ -12,10 +12,11 @@ import {
 import { db } from '@/src/lib/firebase';
 import { Product } from '@/src/types';
 import { useOutletContext } from 'react-router-dom';
-import { Plus, Search, Filter, Edit2, Trash2, X, Save, AlertCircle, Package, UploadCloud, FileText, Check, Loader2 } from 'lucide-react';
+import { Plus, Search, Filter, Edit2, Trash2, X, Save, AlertCircle, Package, UploadCloud, FileText, Check, Loader2, Printer } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { handleFirestoreError, OperationType } from '@/src/lib/firestoreUtils';
 import Papa from 'papaparse';
+import { printStockReport } from '@/src/lib/documentService';
 
 import { logActivity } from '@/src/lib/activity';
 
@@ -300,6 +301,14 @@ const Inventory = () => {
           >
             <UploadCloud size={18} />
             Bulk Import
+          </button>
+
+          <button 
+            onClick={() => printStockReport(filteredProducts)}
+            className="bg-white text-[#EAB308] border border-yellow-200 px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-yellow-50 transition-all shadow-sm"
+          >
+            <Printer size={18} />
+            Print Stock List
           </button>
 
           <button 

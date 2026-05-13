@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { ArrowRight, ChevronRight, Activity, Box, Heart, Zap } from 'lucide-react';
+import { ArrowRight, ChevronRight, Activity, Box, Heart, Zap, Building2, Settings2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Home = () => {
@@ -28,6 +28,18 @@ const Home = () => {
       description: "Lithotripsy, Hemodialysis, and Critical Care solutions for OR/ICU settings.",
       icon: <Zap className="w-8 h-8 text-[#EAB308]" />,
       image: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80&w=800"
+    },
+    {
+      title: "Hospital Projects",
+      description: "Comprehensive infrastructure planning and execution for modern healthcare facilities.",
+      icon: <Building2 className="w-8 h-8 text-[#EAB308]" />,
+      image: "https://images.unsplash.com/photo-1586771107445-d3ca888129ff?auto=format&fit=crop&q=80&w=800"
+    },
+    {
+      title: "Servicing & Technical Support",
+      description: "Professional maintenance and repairs for both public and private medical institutions.",
+      icon: <Settings2 className="w-8 h-8 text-[#EAB308]" />,
+      image: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=800"
     }
   ];
 
@@ -136,7 +148,7 @@ const Home = () => {
       {/* Business Areas Grid */}
       <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {businessAreas.map((area, idx) => (
               <motion.div
                 key={idx}

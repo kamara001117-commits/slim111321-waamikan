@@ -1,7 +1,7 @@
 import { jsPDF } from 'jspdf';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from './firebase';
-import { Invoice, Payment, Receipt } from '../types';
+import { Invoice, Payment, Receipt, Product } from '../types';
 import { format } from 'date-fns';
 
 export const generateAndUploadInvoicePDF = async (invoice: Invoice): Promise<string> => {
@@ -87,6 +87,7 @@ export const generateAndUploadInvoicePDF = async (invoice: Invoice): Promise<str
   // Footer
   doc.setFontSize(8);
   doc.setTextColor(150, 150, 150);
+  doc.text("WAAMIKAN also specializes in hospital projects, servicing, and repairs for public and private healthcare institutions.", 105, 275, { align: 'center' });
   doc.text("This is an electronically generated document. No signature required.", 105, 280, { align: 'center' });
   doc.text("WAAMIKAN ENTERPRISE - Integrity in Healthcare Delivery", 105, 285, { align: 'center' });
   
@@ -164,6 +165,7 @@ export const generateAndUploadReceiptPDF = async (receipt: Receipt): Promise<str
   
   doc.setFontSize(9);
   doc.setTextColor(150, 150, 150);
+  doc.text("WAAMIKAN specializes in hospital projects, equipment servicing, and repairs for both public and private institutions.", 105, 268, { align: 'center' });
   doc.text("Thank you for your business. For any billing inquiries, please contact our accounts department.", 105, 275, { align: 'center' });
   doc.text("WAAMIKAN ENTERPRISE - Partners in Health", 105, 282, { align: 'center' });
   
@@ -244,10 +246,67 @@ const generatePDFInternal = (type: string, data: any) => {
   // Footer
   doc.setFontSize(8);
   doc.setTextColor(150, 150, 150);
+  doc.text("WAAMIKAN also undertakes hospital projects, servicing, and repairs for public and private healthcare institutions.", 105, 275, { align: 'center' });
   doc.text("This is an electronically generated official document.", 105, 280, { align: 'center' });
   doc.text("WAAMIKAN ENTERPRISE - Integrity in Healthcare Delivery", 105, 285, { align: 'center' });
 
   return doc;
+};
+
+export const generateStockReportPDF = (products: Product[]) => {
+  const doc = new jsPDF();
+  
+  // Header
+  doc.setFillColor(11, 60, 93);
+  doc.rect(0, 0, 210, 40, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(22);
+  doc.setFont('helvetica', 'bold');
+  doc.text("WAAMIKAN ENTERPRISE", 20, 20);
+  doc.setFontSize(14);
+  doc.text("INVENTORY STOCK LEVEL REPORT", 20, 30);
+  
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(10);
+  doc.text(`Generated on: ${format(new Date(), 'PPPP p')}`, 140, 50);
+
+  // Table
+  let y = 60;
+  doc.setFillColor(240, 240, 240);
+  doc.rect(20, y, 170, 10, 'F');
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text("SKU", 25, y + 7);
+  doc.text("Product Name", 60, y + 7);
+  doc.text("Category", 130, y + 7);
+  doc.text("Stock", 185, y + 7, { align: 'right' });
+
+  doc.setFont('helvetica', 'normal');
+  y += 15;
+  products.forEach((p, index) => {
+    if (y > 270) {
+      doc.addPage();
+      y = 20;
+    }
+    doc.text(p.sku, 25, y);
+    doc.text(p.name.substring(0, 35), 60, y);
+    doc.text(p.category, 130, y);
+    doc.text(p.stock.toString(), 185, y, { align: 'right' });
+    y += 10;
+  });
+
+  // Footer
+  doc.setFontSize(8);
+  doc.setTextColor(150, 150, 150);
+  doc.text("WAAMIKAN ENTERPRISE - Inventory Management System", 105, 285, { align: 'center' });
+
+  return doc;
+};
+
+export const printStockReport = (products: Product[]) => {
+  const doc = generateStockReportPDF(products);
+  const string = doc.output('bloburl');
+  window.open(string, '_blank');
 };
 
 export const printDocument = async (type: string, data: any) => {

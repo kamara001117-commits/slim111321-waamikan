@@ -21,7 +21,7 @@ import { logActivity } from "./activity";
 
 import { createInvoice } from "./invoiceService";
 
-export type SalesDocType = 'Quotation' | 'SalesOrder' | 'DeliveryNote' | 'CreditNote';
+export type SalesDocType = 'Quotation' | 'SalesOrder' | 'DeliveryNote' | 'CreditNote' | 'ProformaInvoice' | 'SalesQuote';
 
 export interface SalesDocument {
   id: string;
@@ -40,7 +40,15 @@ export interface SalesDocument {
 }
 
 export const createSalesDocument = async (docData: Omit<SalesDocument, 'id' | 'docNumber' | 'createdAt'>) => {
-  const prefix = docData.type === 'Quotation' ? 'QT' : docData.type === 'SalesOrder' ? 'SO' : docData.type === 'DeliveryNote' ? 'DN' : 'CN';
+  const prefixes: Record<string, string> = {
+    'Quotation': 'QT',
+    'SalesQuote': 'SQ',
+    'SalesOrder': 'SO',
+    'DeliveryNote': 'DN',
+    'CreditNote': 'CN',
+    'ProformaInvoice': 'PI'
+  };
+  const prefix = prefixes[docData.type] || 'DOC';
   
   // Use a simpler query that doesn't requires a composite index
   const q = query(collection(db, 'sales_documents'), where('type', '==', docData.type));

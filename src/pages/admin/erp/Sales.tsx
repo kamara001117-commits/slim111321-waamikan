@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, query, orderBy, where } from 'firebase/firestore';
 import { db } from '@/src/lib/firebase';
-import { SalesDocument, fulfillOrder, convertToSalesOrder, convertToInvoice, createSalesDocument } from '@/src/lib/salesService';
+import { SalesDocument, SalesDocType, fulfillOrder, convertToSalesOrder, convertToInvoice, createSalesDocument } from '@/src/lib/salesService';
 import { handleFirestoreError, OperationType } from '@/src/lib/firestoreUtils';
 import { Product, Customer } from '@/src/types/index';
 import { 
@@ -17,6 +17,7 @@ import {
   Printer,
   FileCheck,
   RefreshCw,
+  Receipt,
   X
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -24,7 +25,7 @@ import { printDocument } from '@/src/lib/documentService';
 
 const Sales = () => {
   const [documents, setDocuments] = useState<SalesDocument[]>([]);
-  const [activeTab, setActiveTab] = useState<'Quotation' | 'SalesOrder' | 'DeliveryNote' | 'CreditNote'>('Quotation');
+  const [activeTab, setActiveTab] = useState<SalesDocType>('SalesQuote');
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);
   
@@ -65,6 +66,7 @@ const Sales = () => {
 
   const handleAddQuotation = async () => {
     try {
+      const typeLabel = activeTab.replace(/([A-Z])/g, ' $1').trim();
       await createSalesDocument({
         ...newDoc,
         type: activeTab,
@@ -72,7 +74,7 @@ const Sales = () => {
       });
       setShowAddModal(false);
       setNewDoc({ customerId: '', customerName: '', items: [], total: 0, status: 'Draft' });
-      alert(`${activeTab} created successfully.`);
+      alert(`${typeLabel} created successfully.`);
     } catch (error: any) {
       console.error(error);
       alert(`Failed to create ${activeTab}: ` + (error.message || "Unknown error"));
@@ -182,9 +184,10 @@ const Sales = () => {
         </div>
       )}
 
-      <div className="flex gap-2 p-1 bg-gray-100 rounded-2xl w-fit">
+      <div className="flex gap-2 p-1 bg-gray-100 rounded-2xl w-fit overflow-x-auto max-w-full">
         {[
-          { id: 'Quotation', name: 'Quotations', icon: <FileText size={18} /> },
+          { id: 'SalesQuote', name: 'Sales Quotes', icon: <FileText size={18} /> },
+          { id: 'ProformaInvoice', name: 'Proforma', icon: <Receipt size={18} /> },
           { id: 'SalesOrder', name: 'Sales Orders', icon: <Zap size={18} /> },
           { id: 'DeliveryNote', name: 'Delivery Notes', icon: <Truck size={18} /> },
           { id: 'CreditNote', name: 'Credit Notes', icon: <RefreshCw size={18} /> }
@@ -250,7 +253,7 @@ const Sales = () => {
                                <RefreshCw size={18} className="animate-spin text-gray-400" />
                              ) : (
                                <>
-                                 {activeTab === 'Quotation' && (
+                                 {(activeTab === 'SalesQuote' || activeTab === 'Quotation' || activeTab === 'ProformaInvoice') && (
                                    <button 
                                      className="p-2 bg-yellow-50 text-[#EAB308] rounded-xl hover:bg-[#EAB308] hover:text-white transition-all shadow-sm"
                                      title="Convert to Sales Order"

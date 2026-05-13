@@ -33,14 +33,15 @@ import {
   Edit,
   Eye,
   CreditCard,
-  History
+  History,
+  Printer
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
 import { onAuthStateChanged } from 'firebase/auth';
 import { recordPayment, createInvoice } from '@/src/lib/invoiceService';
 import jsPDF from 'jspdf';
-import { generateAndUploadInvoicePDF, generateAndUploadReceiptPDF, downloadDocument } from '@/src/lib/documentService';
+import { generateAndUploadInvoicePDF, generateAndUploadReceiptPDF, downloadDocument, printDocument } from '@/src/lib/documentService';
 import { logActivity } from '@/src/lib/activity';
 import { Receipt } from '@/src/types';
 
@@ -439,6 +440,13 @@ const Invoices = () => {
                 <td className="px-8 py-5 text-right">
                   <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button 
+                      onClick={() => printDocument('Invoice', inv)} 
+                      className="p-2.5 bg-gray-50 text-gray-400 hover:text-[#EAB308] rounded-xl"
+                      title="Print Invoice"
+                    >
+                      <Printer size={18} />
+                    </button>
+                    <button 
                       onClick={() => downloadDocument('Invoice', inv)} 
                       className="p-2.5 bg-gray-50 text-gray-400 hover:text-[#0B3C5D] rounded-xl"
                     >
@@ -704,6 +712,13 @@ const Invoices = () => {
                           >
                             <Download size={16} />
                           </a>
+                          <button 
+                            onClick={() => printDocument('Invoice', selectedInvoice)} 
+                            className="p-2 bg-blue-100 text-blue-800 rounded-lg hover:bg-blue-200 transition-colors shadow-sm"
+                            title="Print Invoice"
+                          >
+                            <Printer size={16} />
+                          </button>
                         </div>
                       ) : (
                         <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-2xl border border-gray-100 italic text-gray-400 text-xs">
@@ -735,6 +750,13 @@ const Invoices = () => {
                             >
                               <Download size={16} />
                             </a>
+                            <button 
+                              onClick={() => printDocument('Receipt', receipt)} 
+                              className="p-2 bg-green-100 text-green-800 rounded-lg hover:bg-green-200 transition-colors shadow-sm"
+                              title="Print Receipt"
+                            >
+                              <Printer size={16} />
+                            </button>
                           </div>
                         ))
                       ) : (

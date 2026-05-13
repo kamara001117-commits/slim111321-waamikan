@@ -402,11 +402,12 @@ const Procurement = () => {
                     <th className="px-8 py-6 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Supplier</th>
                     <th className="px-8 py-6 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Total</th>
                     <th className="px-8 py-6 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
+                    <th className="px-8 py-6 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {quotes.map(q => (
-                    <tr key={q.id}>
+                    <tr key={q.id} className="hover:bg-gray-50/50 group transition-colors">
                       <td className="px-8 py-6 font-mono text-sm font-bold text-blue-600">{q.quoteNumber}</td>
                       <td className="px-8 py-6 font-black uppercase">{q.supplierName}</td>
                       <td className="px-8 py-6 text-right font-black">GHC {q.total?.toLocaleString()}</td>
@@ -414,14 +415,22 @@ const Procurement = () => {
                         {q.status === 'Converted' ? 'Converted to PO' : 'Requesting pricing'}
                       </td>
                       <td className="px-8 py-6 text-right">
-                         {q.status !== 'Converted' && (
+                         <div className="flex justify-end gap-2">
+                           {q.status !== 'Converted' && (
+                             <button 
+                               onClick={() => handleConvertQuote(q.id)}
+                               className="text-[10px] font-black text-[#0B3C5D] hover:underline uppercase tracking-tighter"
+                             >
+                               To PO →
+                             </button>
+                           )}
                            <button 
-                             onClick={() => handleConvertQuote(q.id)}
-                             className="text-[10px] font-black text-[#0B3C5D] hover:underline uppercase tracking-tighter"
+                             onClick={() => printDocument('Purchase Quote', q)}
+                             className="p-2 bg-gray-50 text-gray-400 rounded-xl hover:bg-[#0B3C5D] hover:text-white transition-all opacity-0 group-hover:opacity-100"
                            >
-                             To Purchase Order →
+                             <Printer size={16} />
                            </button>
-                         )}
+                         </div>
                       </td>
                     </tr>
                   ))}
@@ -451,16 +460,25 @@ const Procurement = () => {
                     <th className="px-8 py-6 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">PO Link</th>
                     <th className="px-8 py-6 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Received Date</th>
                     <th className="px-8 py-6 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Inventory Status</th>
+                    <th className="px-8 py-6 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {receipts.map(r => (
-                    <tr key={r.id}>
+                    <tr key={r.id} className="hover:bg-gray-50/50 group transition-colors">
                       <td className="px-8 py-6 font-mono text-sm font-bold text-green-600">{r.receiptNumber}</td>
                       <td className="px-8 py-6 font-bold">{r.poNumber || 'Manual Receipt'}</td>
                       <td className="px-8 py-6 text-sm italic">{format(new Date(r.createdAt), 'MMM dd, yyyy HH:mm')}</td>
                       <td className="px-8 py-6 text-center">
                          <span className="text-[10px] font-black bg-green-50 text-green-600 px-3 py-1 rounded-full uppercase">Stock Updated</span>
+                      </td>
+                      <td className="px-8 py-6 text-right">
+                        <button 
+                          onClick={() => printDocument('Goods Receipt', r)}
+                          className="p-2 bg-gray-50 text-gray-400 rounded-xl hover:bg-[#0B3C5D] hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                        >
+                          <Printer size={16} />
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -489,14 +507,23 @@ const Procurement = () => {
                     <th className="px-8 py-6 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Note #</th>
                     <th className="px-8 py-6 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Supplier</th>
                     <th className="px-8 py-6 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Net Adjustment</th>
+                    <th className="px-8 py-6 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {debitNotes.map(dn => (
-                    <tr key={dn.id}>
+                    <tr key={dn.id} className="hover:bg-gray-50/50 group transition-colors">
                       <td className="px-8 py-6 font-mono text-sm font-bold text-orange-600">{dn.noteNumber}</td>
                       <td className="px-8 py-6 font-black uppercase tracking-tight">{dn.supplierName}</td>
                       <td className="px-8 py-6 text-right font-black text-orange-600">- GHC {dn.amount?.toLocaleString()}</td>
+                      <td className="px-8 py-6 text-right">
+                        <button 
+                          onClick={() => printDocument('Debit Note', dn)}
+                          className="p-2 bg-gray-50 text-gray-400 rounded-xl hover:bg-[#0B3C5D] hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                        >
+                          <Printer size={16} />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

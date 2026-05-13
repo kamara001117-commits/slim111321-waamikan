@@ -16,10 +16,12 @@ import {
   Clock,
   ArrowRight,
   UserPlus,
-  FileText
+  FileText,
+  Printer
 } from 'lucide-react';
 import { approveExpenseClaim, payExpenseClaim, createExpenseClaim } from '@/src/lib/expenseService';
 import { generateMonthlyPayroll } from '@/src/lib/hrService';
+import { printDocument } from '@/src/lib/documentService';
 
 const HR = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -241,11 +243,12 @@ const HR = () => {
                       <th className="px-8 py-6 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Base</th>
                       <th className="px-8 py-6 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Net Pay</th>
                       <th className="px-8 py-6 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
+                      <th className="px-8 py-6 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
                     {payroll.map(pay => (
-                      <tr key={pay.id} className="hover:bg-gray-50/50 transition-colors">
+                      <tr key={pay.id} className="hover:bg-gray-50/50 group transition-colors">
                         <td className="px-8 py-6 font-mono text-xs font-black text-[#1F7A8C]">{pay.month}</td>
                         <td className="px-8 py-6">
                            <p className="font-black text-gray-800 uppercase tracking-tight">{pay.employeeName}</p>
@@ -264,6 +267,14 @@ const HR = () => {
                                 {pay.status}
                               </span>
                            </div>
+                        </td>
+                        <td className="px-8 py-6 text-right">
+                          <button 
+                            onClick={() => printDocument('Payslip', pay)}
+                            className="p-2 bg-gray-50 text-gray-400 rounded-xl hover:bg-[#0B3C5D] hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                          >
+                            <Printer size={16} />
+                          </button>
                         </td>
                       </tr>
                     ))}

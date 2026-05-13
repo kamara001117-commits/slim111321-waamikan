@@ -252,7 +252,7 @@ export const Footer = () => {
               <Logo className="h-16 sm:h-24" dark />
             </Link>
             <p className="text-blue-100/70 text-sm leading-relaxed max-w-xs">
-              Advancing healthcare solutions in Ghana and beyond. WAAMIKAN is committed to excellence in medical supplies and imaging technology.
+              Advancing healthcare through medical supplies, specialized hospital projects, and professional equipment servicing across Ghana and beyond.
             </p>
             <div className="flex space-x-4">
               {/* Social icons placeholder */}
@@ -276,8 +276,8 @@ export const Footer = () => {
             <ul className="space-y-4 text-sm text-blue-100/70">
               <li><Link to="/products" className="hover:text-white transition-colors">Medical Consumables</Link></li>
               <li><Link to="/products" className="hover:text-white transition-colors">Imaging Equipment</Link></li>
-              <li><Link to="/products" className="hover:text-white transition-colors">Hospital Furniture</Link></li>
-              <li><Link to="/products" className="hover:text-white transition-colors">Life Support Systems</Link></li>
+              <li><Link to="/products" className="hover:text-white transition-colors">Hospital Infrastructure</Link></li>
+              <li><Link to="/contact" className="hover:text-white transition-colors">Servicing & Repairs</Link></li>
             </ul>
           </div>
 

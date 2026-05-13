@@ -22,7 +22,7 @@ const About = () => {
               <span className="text-gray-400 font-light text-2xl sm:text-4xl lg:text-5xl">Healthcare Excellence</span>
             </h1>
             <p className="text-lg sm:text-xl text-gray-600 leading-relaxed max-w-lg">
-              WAAMIKAN Enterprise is specialized in the supply of medical products, its consumables, and general supply of goods and services.
+              WAAMIKAN Enterprise specializes in the supply of medical products, consumables, and hospital infrastructure projects. We provide expert technical servicing and multi-tier repairs for both public and private healthcare institutions across Ghana and beyond.
             </p>
           </div>
           <div className="relative">
@@ -87,6 +87,14 @@ const About = () => {
       </section>
 
       {/* Leadership Note */}
+      <section className="py-24 max-w-4xl mx-auto px-4 text-center space-y-10 border-t border-gray-100">
+        <h2 className="text-4xl font-bold text-[#0B3C5D]">Hospital Projects & Servicing</h2>
+        <p className="text-xl text-gray-600 leading-relaxed italic">
+          “Beyond supply, WAAMIKAN Enterprise also undertakes comprehensive hospital infrastructure projects, providing professional equipment servicing and dedicated repairs for both public and private healthcare facilities.”
+        </p>
+      </section>
+
+      {/* Human Resource */}
       <section className="py-24 max-w-4xl mx-auto px-4 text-center space-y-10">
         <h2 className="text-4xl font-bold text-[#0B3C5D]">Our Human Resource</h2>
         <p className="text-xl text-gray-600 leading-relaxed">
