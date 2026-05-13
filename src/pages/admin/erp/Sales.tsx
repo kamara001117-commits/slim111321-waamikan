@@ -40,6 +40,10 @@ const Sales = () => {
     status: 'Draft'
   });
 
+  const formatDocType = (type: string) => {
+    return type.replace(/([A-Z])/g, ' $1').trim();
+  };
+
   useEffect(() => {
     const unsub = onSnapshot(
       query(collection(db, 'sales_documents'), orderBy('createdAt', 'desc')), 
@@ -66,7 +70,7 @@ const Sales = () => {
 
   const handleAddQuotation = async () => {
     try {
-      const typeLabel = activeTab.replace(/([A-Z])/g, ' $1').trim();
+      const typeLabel = formatDocType(activeTab);
       await createSalesDocument({
         ...newDoc,
         type: activeTab,
@@ -77,7 +81,7 @@ const Sales = () => {
       alert(`${typeLabel} created successfully.`);
     } catch (error: any) {
       console.error(error);
-      alert(`Failed to create ${activeTab}: ` + (error.message || "Unknown error"));
+      alert(`Failed to create ${formatDocType(activeTab)}: ` + (error.message || "Unknown error"));
     }
   };
 
@@ -108,7 +112,7 @@ const Sales = () => {
              className="flex items-center gap-2 px-6 py-4 bg-[#EAB308] text-white rounded-2xl font-black shadow-lg shadow-yellow-200 hover:scale-[1.02] transition-all"
            >
              <Plus size={20} />
-             NEW {activeTab.toUpperCase()}
+             NEW {formatDocType(activeTab).toUpperCase()}
            </button>
         </div>
       </div>
@@ -118,7 +122,7 @@ const Sales = () => {
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowAddModal(false)} />
           <div className="relative bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md p-10 space-y-6">
              <div className="flex justify-between items-center">
-                <h3 className="text-2xl font-black text-[#0B3C5D]">NEW {activeTab.toUpperCase()}</h3>
+                <h3 className="text-2xl font-black text-[#0B3C5D]">NEW {formatDocType(activeTab).toUpperCase()}</h3>
                 <button onClick={() => setShowAddModal(false)} className="text-gray-400"><X size={24} /></button>
              </div>
              <div className="space-y-4">
@@ -178,7 +182,7 @@ const Sales = () => {
                onClick={handleAddQuotation}
                className="w-full py-5 bg-[#EAB308] text-white font-black text-xs uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-yellow-200"
              >
-                Confirm {activeTab}
+                Confirm {formatDocType(activeTab)}
              </button>
           </div>
         </div>
@@ -186,11 +190,11 @@ const Sales = () => {
 
       <div className="flex gap-2 p-1 bg-gray-100 rounded-2xl w-fit overflow-x-auto max-w-full">
         {[
-          { id: 'SalesQuote', name: 'Sales Quotes', icon: <FileText size={18} /> },
-          { id: 'ProformaInvoice', name: 'Proforma', icon: <Receipt size={18} /> },
-          { id: 'SalesOrder', name: 'Sales Orders', icon: <Zap size={18} /> },
-          { id: 'DeliveryNote', name: 'Delivery Notes', icon: <Truck size={18} /> },
-          { id: 'CreditNote', name: 'Credit Notes', icon: <RefreshCw size={18} /> }
+          { id: 'SalesQuote', name: 'Sales Quote', icon: <FileText size={18} /> },
+          { id: 'ProformaInvoice', name: 'Proforma Invoice', icon: <Receipt size={18} /> },
+          { id: 'SalesOrder', name: 'Sales Order', icon: <Zap size={18} /> },
+          { id: 'DeliveryNote', name: 'Delivery Note', icon: <Truck size={18} /> },
+          { id: 'CreditNote', name: 'Credit Note', icon: <RefreshCw size={18} /> }
         ].map(tab => (
           <button
             key={tab.id}
@@ -283,7 +287,7 @@ const Sales = () => {
                                </>
                              )}
                              <button 
-                               onClick={() => printDocument(activeTab, doc)}
+                               onClick={() => printDocument(formatDocType(activeTab), doc)}
                                className="p-2 bg-gray-50 text-gray-400 rounded-xl hover:bg-[#0B3C5D] hover:text-white transition-all"
                              >
                                <Printer size={18} />
@@ -295,7 +299,7 @@ const Sales = () => {
                   {filteredDocs.length === 0 && (
                     <tr>
                       <td colSpan={6} className="py-20 text-center text-gray-300 font-medium italic">
-                        No {activeTab}s matching your current parameters.
+                        No {formatDocType(activeTab)}s matching your current parameters.
                       </td>
                     </tr>
                   )}

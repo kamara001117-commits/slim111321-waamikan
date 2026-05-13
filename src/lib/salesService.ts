@@ -156,7 +156,9 @@ export const convertToSalesOrder = async (quotationId: string) => {
   if (!quoteSnap.exists()) throw new Error("Quotation not found");
   const quoteData = quoteSnap.data() as SalesDocument;
   
-  if (quoteData.type !== 'Quotation') throw new Error("Document is not a quotation");
+  if (quoteData.type !== 'Quotation' && quoteData.type !== 'SalesQuote' && quoteData.type !== 'ProformaInvoice') {
+    throw new Error("Document is not a convertable quote or proforma");
+  }
 
   return await createSalesDocument({
     type: 'SalesOrder',
