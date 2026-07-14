@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Search, User, LogIn, LogOut, ChevronDown, ShoppingBag, Package } from 'lucide-react';
+import { Menu, X, Search, User, LogIn, LogOut, ChevronDown, ShoppingBag, Package, Facebook, Instagram } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { auth, signInWithGoogle, logout } from '@/src/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -255,9 +255,24 @@ export const Footer = () => {
               Advancing healthcare through medical supplies, specialized hospital projects, and professional equipment servicing across Ghana and beyond.
             </p>
             <div className="flex space-x-4">
-              {/* Social icons placeholder */}
-              <div className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center hover:bg-white/10 transition-colors cursor-pointer">F</div>
-              <div className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center hover:bg-white/10 transition-colors cursor-pointer">I</div>
+              <a 
+                href="https://www.facebook.com/share/1CNAPxXuMc/?mibextid=wwXIfr" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center hover:bg-[#1877F2] hover:border-transparent hover:text-white transition-colors"
+                title="Follow WAAMIKAN on Facebook"
+              >
+                <Facebook size={16} />
+              </a>
+              <a 
+                href="https://www.instagram.com/waamikan?igsh=b3p4ZTZ4cTVjY2N6" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center hover:bg-[#E1306C] hover:border-transparent hover:text-white transition-colors"
+                title="Follow WAAMIKAN on Instagram"
+              >
+                <Instagram size={16} />
+              </a>
             </div>
           </div>
           
