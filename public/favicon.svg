@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <defs>
+    <linearGradient id="waamikan-bg" x1="12" y1="8" x2="88" y2="92" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0E4A72" />
+      <stop offset="100%" stop-color="#072B44" />
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="96" height="96" rx="22" fill="url(#waamikan-bg)" />
+  <circle cx="50" cy="50" r="38" stroke="#1F7A8C" stroke-width="2.5" stroke-opacity="0.7" fill="rgba(255,255,255,0.03)" />
+  <path
+    d="M24 36L38 66L50 42L62 66L76 36"
+    stroke="#FFFFFF"
+    stroke-width="9"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M38 66L50 42L62 66"
+    stroke="#EAB308"
+    stroke-width="9"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <circle cx="50" cy="42" r="4.5" fill="#EAB308" />
+</svg>

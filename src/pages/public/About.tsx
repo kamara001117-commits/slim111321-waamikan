@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { CheckCircle2, Award, Users, Globe } from 'lucide-react';
+import waamikanTeamImg from '@/src/assets/images/waamikan_team_1795316985665.jpg';
 
 const About = () => {
   const values = [
@@ -26,8 +27,13 @@ const About = () => {
             </p>
           </div>
           <div className="relative">
-             <div className="rounded-[40px] overflow-hidden shadow-2xl">
-                <img src="https://images.unsplash.com/photo-1576091160550-2173bdb999ef?auto=format&fit=crop&q=80&w=1200" className="w-full h-[300px] sm:h-[500px] object-cover" alt="Waamikan team" />
+             <div className="rounded-[40px] overflow-hidden shadow-2xl bg-[#0B3C5D]">
+                <img
+                  src={waamikanTeamImg}
+                  className="w-full h-[300px] sm:h-[500px] object-cover"
+                  alt="Waamikan team"
+                  referrerPolicy="no-referrer"
+                />
              </div>
              <div className="absolute -bottom-10 -left-10 bg-white p-8 rounded-3xl shadow-xl max-w-xs border border-gray-100 hidden lg:block">
                 <p className="text-2xl font-black text-[#0B3C5D]">9+ Years</p>
