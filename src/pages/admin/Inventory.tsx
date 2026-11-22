@@ -1,24 +1,46 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  collection, 
-  onSnapshot, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  doc, 
-  query, 
-  orderBy 
+import {
+  collection,
+  onSnapshot,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  query,
+  orderBy,
 } from 'firebase/firestore';
 import { db } from '@/src/lib/firebase';
 import { Product } from '@/src/types';
 import { useOutletContext } from 'react-router-dom';
-import { Plus, Search, Filter, Edit2, Trash2, X, Save, AlertCircle, Package, UploadCloud, FileText, Check, Loader2, Printer } from 'lucide-react';
+import {
+  Plus,
+  Search,
+  Edit2,
+  Trash2,
+  X,
+  Save,
+  AlertCircle,
+  Package,
+  UploadCloud,
+  Check,
+  Loader2,
+  Printer,
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { handleFirestoreError, OperationType } from '@/src/lib/firestoreUtils';
+import { handleFirestoreError, OperationType } from '@/src/lib/firestoreError';
 import Papa from 'papaparse';
-import { printStockReport } from '@/src/lib/documentService';
-
+import { printStockReport, uploadProductImage } from '@/src/lib/documentService';
 import { logActivity } from '@/src/lib/activity';
+
+const VALID_CATEGORIES: Product['category'][] = [
+  'Consumables',
+  'Imaging',
+  'IVD',
+  'Equipment',
+  'Furniture',
+  'Life Support',
+  'Treatment',
+];
 
 const Inventory = () => {
   const { currentUserRole } = useOutletContext<{ currentUserRole: string | null }>();
@@ -30,81 +52,100 @@ const Inventory = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [isSeeding, setIsSeeding] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [savingProduct, setSavingProduct] = useState(false);
 
   const seedCatalog = async () => {
     setIsSeeding(true);
+    const now = new Date().toISOString();
     const professionalProducts = [
       {
-        name: "GE Healthcare Vscan Air™",
-        category: "Imaging",
-        description: "A wireless, handheld ultrasound system that enables quick, non-invasive imaging for cardiovascular, abdominal, and lung assessments.",
+        name: 'GE Healthcare Vscan Air™',
+        category: 'Imaging',
+        description:
+          'A wireless, handheld ultrasound system enabling quick, non-invasive imaging for cardiovascular, abdominal, and lung assessments.',
         price: 24500,
         stock: 15,
-        sku: "GE-VSCAN-AIR",
-        image: "https://images.unsplash.com/photo-1516549655169-df83a0774514?auto=format&fit=crop&q=80&w=800",
-        specs: "Probe Type: Sector & Linear Dual-Probe; Frequency: 2-5MHz (Sector), 3-12MHz (Linear); Weight: 205g",
-        updatedAt: new Date().toISOString()
+        sku: 'GE-VSCAN-AIR',
+        image:
+          'https://images.unsplash.com/photo-1516549655169-df83a0774514?auto=format&fit=crop&q=80&w=800',
+        specs:
+          'Probe Type: Sector & Linear Dual-Probe; Frequency: 2-5MHz (Sector), 3-12MHz (Linear); Weight: 205g',
+        updatedAt: now,
       },
       {
-        name: "Mindray BeneVision N12",
-        category: "Equipment",
-        description: "Patient monitor providing high-quality monitoring for adult, pediatric, and neonatal patients in critical care units.",
+        name: 'Mindray BeneVision N12',
+        category: 'Equipment',
+        description:
+          'Patient monitor providing high-quality monitoring for adult, pediatric, and neonatal patients in critical care units.',
         price: 12800,
         stock: 8,
-        sku: "MR-N12-MONITOR",
-        image: "https://images.unsplash.com/photo-1576091160550-2173599211d0?auto=format&fit=crop&q=80&w=800",
-        specs: "Display: 12\" HD Touch Screen; Parameters: ECG, SpO2, NIBP, Dual Temp, IBP; Battery: 4 hours",
-        updatedAt: new Date().toISOString()
+        sku: 'MR-N12-MONITOR',
+        image:
+          'https://images.unsplash.com/photo-1576091160550-2173599211d0?auto=format&fit=crop&q=80&w=800',
+        specs:
+          'Display: 12" HD Touch Screen; Parameters: ECG, SpO2, NIBP, Dual Temp, IBP; Battery: 4 hours',
+        updatedAt: now,
       },
       {
-        name: "Hillrom Centrella® Smart+ Bed",
-        category: "Furniture",
-        description: "Advanced hospital bed designed for patient safety and comfort, featuring integrated weight measurement and fall prevention alarms.",
+        name: 'Hillrom Centrella® Smart+ Bed',
+        category: 'Furniture',
+        description:
+          'Advanced hospital bed designed for patient safety and comfort, featuring integrated weight measurement and fall prevention alarms.',
         price: 35000,
         stock: 5,
-        sku: "HR-CENTRELLA-B",
-        image: "https://images.unsplash.com/photo-1551076805-e1869033e561?auto=format&fit=crop&q=80&w=800",
-        specs: "Max Load: 227kg; Features: Advanced Patient Exit Alarm, Integrated Scale, USB-Port",
-        updatedAt: new Date().toISOString()
+        sku: 'HR-CENTRELLA-B',
+        image:
+          'https://images.unsplash.com/photo-1551076805-e1869033e561?auto=format&fit=crop&q=80&w=800',
+        specs: 'Max Load: 227kg; Features: Patient Exit Alarm, Integrated Scale, USB-Port',
+        updatedAt: now,
       },
       {
-        name: "Hamilton-C1 Ventilator",
-        category: "Life Support",
-        description: "Compact, high-end ventilator providing maximum comfort for patients with various respiratory needs.",
+        name: 'Hamilton-C1 Ventilator',
+        category: 'Life Support',
+        description:
+          'Compact, high-end ventilator providing maximum comfort for patients with various respiratory needs.',
         price: 42000,
         stock: 4,
-        sku: "HM-C1-VENT",
-        image: "https://images.unsplash.com/photo-1631248055158-edec7a3c072b?auto=format&fit=crop&q=80&w=800",
-        specs: "Mode: Invasive & Non-Invasive; Tidal Volume: 20-2000ml; Weight: 4.9kg",
-        updatedAt: new Date().toISOString()
+        sku: 'HM-C1-VENT',
+        image:
+          'https://images.unsplash.com/photo-1631248055158-edec7a3c072b?auto=format&fit=crop&q=80&w=800',
+        specs: 'Mode: Invasive & Non-Invasive; Tidal Volume: 20-2000ml; Weight: 4.9kg',
+        updatedAt: now,
       },
       {
-         name: "3M™ Littmann® Classic III™",
-         category: "Consumables",
-         description: "The 3M™ Littmann® Classic III™ Stethoscope is the latest version of the stethoscope that helps millions of medical professionals achieve their best.",
-         price: 1200,
-         stock: 50,
-         sku: "3M-LIT-C3",
-         image: "https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&q=80&w=800",
-         specs: "Chestpiece design: Precision-machined stainless steel; Diaphragm material: Epoxy/Glass fiber; Length: 69 cm",
-         updatedAt: new Date().toISOString()
-      }
+        name: '3M™ Littmann® Classic III™',
+        category: 'Consumables',
+        description:
+          'The 3M™ Littmann® Classic III™ Stethoscope offers high acoustic sensitivity for general physical assessments.',
+        price: 1200,
+        stock: 50,
+        sku: '3M-LIT-C3',
+        image:
+          'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&q=80&w=800',
+        specs: 'Chestpiece: Stainless steel; Diaphragm: Epoxy/Glass fiber; Length: 69 cm',
+        updatedAt: now,
+      },
     ];
 
     try {
       for (const product of professionalProducts) {
         await addDoc(collection(db, 'products'), product);
       }
-      alert("Professional catalog seeded successfully!");
+      await logActivity('product', 'Seeded professional medical catalog', 'seed', '5 items added');
+      alert('Professional catalog seeded successfully!');
     } catch (error) {
-      console.error("Error seeding catalog:", error);
+      handleFirestoreError(error, OperationType.CREATE, 'products');
+      alert('Unable to seed catalog. Verify Admin permissions.');
     } finally {
       setIsSeeding(false);
     }
   };
 
   // Import related state
-  const [importStep, setImportStep] = useState<'upload' | 'mapping' | 'progress' | 'complete'>('upload');
+  const [importStep, setImportStep] = useState<'upload' | 'mapping' | 'progress' | 'complete'>(
+    'upload'
+  );
   const [csvData, setCsvData] = useState<any[]>([]);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [mapping, setMapping] = useState<Record<string, string>>({});
@@ -130,20 +171,23 @@ const Inventory = () => {
         complete: (results) => {
           setCsvData(results.data);
           setCsvHeaders(results.meta.fields || []);
-          
-          // Auto-map based on exact matches
+
           const initialMapping: Record<string, string> = {};
-          productFields.forEach(field => {
-            const match = results.meta.fields?.find(h => h.toLowerCase() === field.key.toLowerCase() || h.toLowerCase() === field.label.toLowerCase());
+          productFields.forEach((field) => {
+            const match = results.meta.fields?.find(
+              (h) =>
+                h.toLowerCase() === field.key.toLowerCase() ||
+                h.toLowerCase() === field.label.toLowerCase()
+            );
             if (match) initialMapping[field.key] = match;
           });
           setMapping(initialMapping);
           setImportStep('mapping');
         },
         error: (err) => {
-          console.error("CSV Parse Error:", err);
-          alert("Error parsing CSV file.");
-        }
+          console.error('CSV Parse Error:', err);
+          alert('Error parsing CSV file.');
+        },
       });
     }
   };
@@ -160,18 +204,24 @@ const Inventory = () => {
     for (let i = 0; i < csvData.length; i++) {
       const row = csvData[i];
       try {
+        const rawCat = String(row[mapping.category] || 'Consumables').trim();
+        const validCategory =
+          VALID_CATEGORIES.find((c) => c.toLowerCase() === rawCat.toLowerCase()) || 'Consumables';
+        const parsedPrice = parseFloat(row[mapping.price]);
+        const parsedStock = parseInt(row[mapping.stock], 10);
+
         const payload: Partial<Product> = {
-          name: row[mapping.name] || '',
-          sku: row[mapping.sku] || '',
-          category: (row[mapping.category] || 'Consumables') as Product['category'],
-          price: parseFloat(row[mapping.price]) || 0,
-          stock: parseInt(row[mapping.stock]) || 0,
-          description: row[mapping.description] || '',
-          updatedAt: new Date().toISOString()
+          name: String(row[mapping.name] || '').trim(),
+          sku: String(row[mapping.sku] || '').trim(),
+          category: validCategory,
+          price: Number.isFinite(parsedPrice) && parsedPrice >= 0 ? parsedPrice : 0,
+          stock: Number.isFinite(parsedStock) && parsedStock >= 0 ? parsedStock : 0,
+          description: String(row[mapping.description] || '').trim(),
+          updatedAt: new Date().toISOString(),
         };
 
         if (!payload.name || !payload.sku) {
-          throw new Error("Missing Name or SKU");
+          throw new Error('Missing Name or SKU');
         }
 
         await addDoc(collection(db, 'products'), payload);
@@ -184,7 +234,12 @@ const Inventory = () => {
 
     setImportErrors(errors);
     setImportStep('complete');
-    await logActivity('product', `Bulk imported ${successCount} products`, 'bulk', errors.length > 0 ? `Errors: ${errors.length}` : '');
+    await logActivity(
+      'product',
+      `Bulk imported ${successCount} products`,
+      'bulk',
+      errors.length > 0 ? `Errors: ${errors.length}` : ''
+    );
   };
 
   const [formData, setFormData] = useState({
@@ -195,57 +250,105 @@ const Inventory = () => {
     stock: 0,
     sku: '',
     image: '',
-    specs: ''
+    specs: '',
   });
 
   useEffect(() => {
     if (!currentUserRole) return;
 
     const q = query(collection(db, 'products'), orderBy('updatedAt', 'desc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
-      setProducts(data);
-      setLoading(false);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'products');
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Product));
+        setProducts(data);
+        setLoading(false);
+      },
+      (error) => {
+        setLoading(false);
+        handleFirestoreError(error, OperationType.LIST, 'products');
+      }
+    );
 
     return () => unsubscribe();
   }, [currentUserRole]);
 
+  const handleImageSelection = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingImage(true);
+    try {
+      const imageUrl = await uploadProductImage(file);
+      setFormData((prev) => ({ ...prev, image: imageUrl }));
+    } catch (err) {
+      console.error('Image upload failed:', err);
+      alert('Failed to process image. Try a smaller image or paste an image URL.');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSavingProduct(true);
     const payload = {
       ...formData,
-      updatedAt: new Date().toISOString()
+      name: formData.name.trim(),
+      sku: formData.sku.trim(),
+      price: Number.isFinite(formData.price) && formData.price >= 0 ? formData.price : 0,
+      stock: Number.isFinite(formData.stock) && formData.stock >= 0 ? formData.stock : 0,
+      updatedAt: new Date().toISOString(),
     };
 
     try {
       if (editingProduct) {
         await updateDoc(doc(db, 'products', editingProduct.id), payload);
-        await logActivity('product', `Updated product ${formData.name}`, editingProduct.id, `Stock: ${formData.stock}`);
+        await logActivity(
+          'product',
+          `Updated product ${payload.name}`,
+          editingProduct.id,
+          `Stock: ${payload.stock}`
+        );
       } else {
         const docRef = await addDoc(collection(db, 'products'), payload);
-        await logActivity('product', `Created product ${formData.name}`, docRef.id, `SKU: ${formData.sku}`);
+        await logActivity('product', `Created product ${payload.name}`, docRef.id, `SKU: ${payload.sku}`);
       }
       setIsModalOpen(false);
       setEditingProduct(null);
-      setFormData({ name: '', category: 'Consumables' as Product['category'], description: '', price: 0, stock: 0, sku: '', image: '', specs: '' });
+      setFormData({
+        name: '',
+        category: 'Consumables',
+        description: '',
+        price: 0,
+        stock: 0,
+        sku: '',
+        image: '',
+        specs: '',
+      });
     } catch (error) {
-      console.error("Error saving product:", error);
+      handleFirestoreError(error, OperationType.WRITE, 'products');
+      alert('Failed to save product. Verify Admin permissions and check fields.');
+    } finally {
+      setSavingProduct(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm("Are you sure you want to delete this product?")) {
-      const prod = products.find(p => p.id === id);
+    if (!window.confirm('Are you sure you want to delete this product?')) return;
+    try {
+      const prod = products.find((p) => p.id === id);
       await deleteDoc(doc(db, 'products', id));
-      await logActivity('product', `Deleted product ${prod?.name}`, id, '');
+      await logActivity('product', `Deleted product ${prod?.name || id}`, id, '');
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `products/${id}`);
+      alert('Failed to delete product. Only Admins can delete catalog items.');
     }
   };
 
-  const filteredProducts = products.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.sku.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredProducts = products.filter((p) => {
+    const matchesSearch =
+      p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.sku?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = categoryFilter === 'All' || p.category === categoryFilter;
     return matchesSearch && matchesCategory;
   });
@@ -253,69 +356,82 @@ const Inventory = () => {
   return (
     <div className="space-y-6">
       {/* Filters & Actions */}
-      <div className="flex flex-col md:flex-row justify-between gap-4">
-        <div className="flex bg-white rounded-xl shadow-sm border border-gray-200 p-1 flex-grow max-w-md">
+      <div className="flex flex-col xl:flex-row justify-between gap-4">
+        <div className="flex bg-white rounded-xl shadow-sm border border-gray-200 p-1 flex-grow xl:max-w-md">
           <div className="flex items-center px-3 text-gray-400">
             <Search size={18} />
           </div>
-          <input 
-            type="text" 
+          <input
+            type="text"
             placeholder="Search products or SKU..."
             className="flex-grow p-2 outline-none text-sm"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        
-        <div className="flex gap-4">
-          <select 
+
+        <div className="flex flex-wrap gap-3">
+          <select
             className="bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none"
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
           >
             <option>All</option>
-            <option>Consumables</option>
-            <option>Imaging</option>
-            <option>IVD</option>
-            <option>Equipment</option>
-            <option>Furniture</option>
-            <option>Life Support</option>
-            <option>Treatment</option>
+            {VALID_CATEGORIES.map((c) => (
+              <option key={c}>{c}</option>
+            ))}
           </select>
-          
-          <button 
+
+          <button
+            type="button"
             onClick={seedCatalog}
             disabled={isSeeding}
-            className="bg-green-50 text-green-700 border border-green-100 px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-green-100 transition-all shadow-sm disabled:opacity-50"
+            className="bg-green-50 text-green-700 border border-green-100 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-green-100 transition-all shadow-sm disabled:opacity-50"
           >
-            {isSeeding ? <Loader2 className="animate-spin" size={18} /> : <Package size={18} />}
-            Seed Professional Catalog
+            {isSeeding ? <Loader2 className="animate-spin" size={16} /> : <Package size={16} />}
+            Seed Catalog
           </button>
 
-          <button 
+          <button
+            type="button"
             onClick={() => {
               setImportStep('upload');
               setIsImportModalOpen(true);
             }}
-            className="bg-white text-[#0B3C5D] border border-gray-200 px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-gray-50 transition-all shadow-sm"
+            className="bg-white text-[#0B3C5D] border border-gray-200 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-gray-50 transition-all shadow-sm"
           >
-            <UploadCloud size={18} />
+            <UploadCloud size={16} />
             Bulk Import
           </button>
 
-          <button 
+          <button
+            type="button"
             onClick={() => printStockReport(filteredProducts)}
-            className="bg-white text-[#EAB308] border border-yellow-200 px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-yellow-50 transition-all shadow-sm"
+            className="bg-white text-[#B45309] border border-yellow-200 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-yellow-50 transition-all shadow-sm"
           >
-            <Printer size={18} />
+            <Printer size={16} />
             Print Stock List
           </button>
 
-          <button 
-            onClick={() => { setEditingProduct(null); setIsModalOpen(true); }}
-            className="bg-[#0B3C5D] text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-[#1F7A8C] transition-all shadow-sm"
+          <button
+            type="button"
+            onClick={() => {
+              setEditingProduct(null);
+              setFormData({
+                name: '',
+                category: 'Consumables',
+                description: '',
+                price: 0,
+                stock: 0,
+                sku: '',
+                image: '',
+                specs: '',
+              });
+              setIsModalOpen(true);
+            }}
+            className="bg-[#0B3C5D] text-white px-5 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-[#1F7A8C] transition-all shadow-sm"
           >
-            <Plus size={18} />
+            <Plus size={16} />
             Add Product
           </button>
         </div>
@@ -323,82 +439,118 @@ const Inventory = () => {
 
       {/* Product Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-        <table className="w-full text-left">
-          <thead className="bg-gray-50 border-b border-gray-100">
-            <tr>
-              <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Product</th>
-              <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Category</th>
-              <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">SKU</th>
-              <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Stock</th>
-              <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Price</th>
-              <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {filteredProducts.map((product) => (
-              <tr key={product.id} className="hover:bg-gray-50/50 transition-colors">
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gray-50 rounded-lg flex items-center justify-center text-[#0B3C5D] overflow-hidden border border-gray-100">
-                      {product.image ? (
-                        <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <Package size={24} className="text-gray-300" />
-                      )}
-                    </div>
-                    <div>
-                      <p className="font-bold text-gray-800">{product.name}</p>
-                      <p className="text-xs text-gray-400 truncate max-w-[200px]">{product.description}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-600">
-                    {product.category}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-500 font-mono">{product.sku}</td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-2">
-                    <span className={`w-2 h-2 rounded-full ${product.stock < 10 ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`}></span>
-                    <span className="text-sm font-bold text-gray-700">{product.stock}</span>
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-sm font-bold text-[#0B3C5D]">GHC {product.price.toLocaleString()}</td>
-                <td className="px-6 py-4 text-right">
-                  <div className="flex justify-end gap-2">
-                    <button 
-                      onClick={() => { 
-                        setEditingProduct(product); 
-                        setFormData({
-                          name: product.name,
-                          category: product.category,
-                          description: product.description,
-                          price: product.price,
-                          stock: product.stock,
-                          sku: product.sku,
-                          image: product.image || '',
-                          specs: product.specs || ''
-                        }); 
-                        setIsModalOpen(true); 
-                      }}
-                      className="p-2 text-gray-400 hover:text-[#0B3C5D] transition-colors"
-                    >
-                      <Edit2 size={18} />
-                    </button>
-                    <button 
-                      onClick={() => handleDelete(product.id)}
-                      className="p-2 text-gray-400 hover:text-red-500 transition-colors"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left min-w-[700px]">
+            <thead className="bg-gray-50 border-b border-gray-100">
+              <tr>
+                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                  Product
+                </th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                  Category
+                </th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                  SKU
+                </th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                  Stock
+                </th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                  Price
+                </th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">
+                  Actions
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        {filteredProducts.length === 0 && (
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
+                    Loading inventory...
+                  </td>
+                </tr>
+              ) : (
+                filteredProducts.map((product) => (
+                  <tr key={product.id} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-gray-50 rounded-lg flex items-center justify-center text-[#0B3C5D] overflow-hidden border border-gray-100 shrink-0">
+                          {product.image ? (
+                            <img
+                              src={product.image}
+                              alt={product.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <Package size={24} className="text-gray-300" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-bold text-gray-800">{product.name}</p>
+                          <p className="text-xs text-gray-400 truncate max-w-[200px]">
+                            {product.description}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-600">
+                        {product.category}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500 font-mono">{product.sku}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`w-2 h-2 rounded-full ${
+                            product.stock < 10 ? 'bg-red-500 animate-pulse' : 'bg-green-500'
+                          }`}
+                        />
+                        <span className="text-sm font-bold text-gray-700">{product.stock}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm font-bold text-[#0B3C5D]">
+                      GHC {(product.price || 0).toLocaleString()}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingProduct(product);
+                            setFormData({
+                              name: product.name,
+                              category: product.category,
+                              description: product.description || '',
+                              price: product.price,
+                              stock: product.stock,
+                              sku: product.sku,
+                              image: product.image || '',
+                              specs: product.specs || '',
+                            });
+                            setIsModalOpen(true);
+                          }}
+                          className="p-2 text-gray-400 hover:text-[#0B3C5D] transition-colors"
+                        >
+                          <Edit2 size={18} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(product.id)}
+                          className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        {!loading && filteredProducts.length === 0 && (
           <div className="p-12 text-center">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-50 rounded-full text-gray-300 mb-4">
               <Package size={32} />
@@ -412,38 +564,55 @@ const Inventory = () => {
       <AnimatePresence>
         {isModalOpen && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="absolute inset-0 bg-black/40 backdrop-blur-sm"
               onClick={() => setIsModalOpen(false)}
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden"
+              className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
             >
-              <div className="p-8 border-b border-gray-100 flex justify-between items-center">
-                <h3 className="text-2xl font-bold text-[#0B3C5D]">{editingProduct ? 'Edit Product' : 'Add New Product'}</h3>
-                <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+              <div className="p-6 sm:p-8 border-b border-gray-100 flex justify-between items-center">
+                <h3 className="text-2xl font-bold text-[#0B3C5D]">
+                  {editingProduct ? 'Edit Product' : 'Add New Product'}
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
                   <X size={24} />
                 </button>
               </div>
-              
-              <form onSubmit={handleSave} className="p-8 space-y-6">
+
+              <form onSubmit={handleSave} className="p-6 sm:p-8 space-y-6">
                 <div className="flex flex-col md:flex-row gap-8">
                   {/* Image Upload Area */}
-                  <div className="w-full md:w-1/3 flex flex-col gap-4">
-                    <label className="text-xs font-bold text-gray-400 uppercase">Product Image</label>
-                    <div 
+                  <div className="w-full md:w-1/3 flex flex-col gap-3">
+                    <label className="text-xs font-bold text-gray-400 uppercase">
+                      Product Image
+                    </label>
+                    <div
                       className="aspect-square bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-2 overflow-hidden relative group cursor-pointer hover:border-[#0B3C5D] transition-colors"
-                      onClick={() => document.getElementById('image-upload')?.click()}
+                      onClick={() => !uploadingImage && document.getElementById('image-upload')?.click()}
                     >
-                      {formData.image ? (
+                      {uploadingImage ? (
+                        <div className="flex flex-col items-center gap-2 text-[#0B3C5D]">
+                          <Loader2 size={32} className="animate-spin" />
+                          <span className="text-[10px] font-bold uppercase">Uploading...</span>
+                        </div>
+                      ) : formData.image ? (
                         <>
-                          <img src={formData.image} alt="Preview" className="w-full h-full object-cover" />
+                          <img
+                            src={formData.image}
+                            alt="Preview"
+                            className="w-full h-full object-cover"
+                          />
                           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                             <Plus className="text-white" size={32} />
                           </div>
@@ -451,130 +620,157 @@ const Inventory = () => {
                       ) : (
                         <>
                           <Package size={48} className="text-gray-200" />
-                          <p className="text-[10px] font-bold text-gray-400 uppercase">Click to upload</p>
+                          <p className="text-[10px] font-bold text-gray-400 uppercase">
+                            Click to upload
+                          </p>
                         </>
                       )}
-                      <input 
-                        type="file" 
-                        id="image-upload" 
-                        hidden 
+                      <input
+                        type="file"
+                        id="image-upload"
+                        hidden
                         accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            const reader = new FileReader();
-                            reader.onloadend = () => {
-                              setFormData({ ...formData, image: reader.result as string });
-                            };
-                            reader.readAsDataURL(file);
-                          }
-                        }}
+                        onChange={handleImageSelection}
                       />
                     </div>
+                    <input
+                      type="url"
+                      placeholder="Or paste image URL..."
+                      value={formData.image.startsWith('data:') ? '' : formData.image}
+                      onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                      className="w-full p-2 text-xs bg-gray-50 border border-gray-200 rounded-xl outline-none"
+                    />
                     {formData.image && (
-                      <button 
+                      <button
                         type="button"
                         onClick={() => setFormData({ ...formData, image: '' })}
-                        className="text-xs font-bold text-red-500 uppercase hover:text-red-700"
+                        className="text-xs font-bold text-red-500 uppercase hover:text-red-700 text-left"
                       >
                         Remove Image
                       </button>
                     )}
                   </div>
 
-                  <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div className="space-y-2 md:col-span-2">
-                      <label className="text-xs font-bold text-gray-400 uppercase">Product Name</label>
-                      <input 
+                      <label className="text-xs font-bold text-gray-400 uppercase">
+                        Product Name
+                      </label>
+                      <input
                         required
-                        type="text" 
+                        type="text"
                         className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 outline-none focus:border-[#0B3C5D]"
                         value={formData.name}
-                        onChange={(e) => setFormData({...formData, name: e.target.value})}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       />
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-gray-400 uppercase">Category</label>
-                      <select 
+                      <select
                         className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 outline-none focus:border-[#0B3C5D]"
                         value={formData.category}
-                        onChange={(e) => setFormData({...formData, category: e.target.value as any})}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            category: e.target.value as Product['category'],
+                          })
+                        }
                       >
-                        <option>Consumables</option>
-                        <option>Imaging</option>
-                        <option>IVD</option>
-                        <option>Equipment</option>
-                        <option>Furniture</option>
-                        <option>Life Support</option>
-                        <option>Treatment</option>
+                        {VALID_CATEGORIES.map((c) => (
+                          <option key={c}>{c}</option>
+                        ))}
                       </select>
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-gray-400 uppercase">SKU</label>
-                      <input 
+                      <input
                         required
-                        type="text" 
+                        type="text"
                         className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 outline-none focus:border-[#0B3C5D]"
                         value={formData.sku}
-                        onChange={(e) => setFormData({...formData, sku: e.target.value})}
+                        onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-gray-400 uppercase">Price (GHC)</label>
-                      <input 
+                      <label className="text-xs font-bold text-gray-400 uppercase">
+                        Price (GHC)
+                      </label>
+                      <input
                         required
-                        type="number" 
+                        type="number"
+                        min={0}
+                        step="0.01"
                         className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 outline-none focus:border-[#0B3C5D]"
                         value={formData.price}
-                        onChange={(e) => setFormData({...formData, price: parseFloat(e.target.value)})}
+                        onChange={(e) => {
+                          const v = parseFloat(e.target.value);
+                          setFormData({ ...formData, price: Number.isFinite(v) ? v : 0 });
+                        }}
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-gray-400 uppercase">Initial Stock</label>
-                      <input 
+                      <label className="text-xs font-bold text-gray-400 uppercase">
+                        Initial Stock
+                      </label>
+                      <input
                         required
-                        type="number" 
+                        type="number"
+                        min={0}
                         className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 outline-none focus:border-[#0B3C5D]"
                         value={formData.stock}
-                        onChange={(e) => setFormData({...formData, stock: parseInt(e.target.value)})}
+                        onChange={(e) => {
+                          const v = parseInt(e.target.value, 10);
+                          setFormData({ ...formData, stock: Number.isFinite(v) ? v : 0 });
+                        }}
                       />
                     </div>
                     <div className="space-y-2 md:col-span-2">
-                      <label className="text-xs font-bold text-gray-400 uppercase">Description</label>
-                      <textarea 
+                      <label className="text-xs font-bold text-gray-400 uppercase">
+                        Description
+                      </label>
+                      <textarea
                         rows={3}
                         className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 outline-none focus:border-[#0B3C5D]"
                         value={formData.description}
-                        onChange={(e) => setFormData({...formData, description: e.target.value})}
+                        onChange={(e) =>
+                          setFormData({ ...formData, description: e.target.value })
+                        }
                       />
                     </div>
                     <div className="space-y-2 md:col-span-2">
-                      <label className="text-xs font-bold text-gray-400 uppercase">Technical Specifications (Semicolon separated)</label>
-                      <textarea 
+                      <label className="text-xs font-bold text-gray-400 uppercase">
+                        Technical Specifications (Semicolon separated)
+                      </label>
+                      <textarea
                         rows={2}
                         className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 outline-none focus:border-[#0B3C5D]"
                         value={formData.specs}
-                        onChange={(e) => setFormData({...formData, specs: e.target.value})}
+                        onChange={(e) => setFormData({ ...formData, specs: e.target.value })}
                         placeholder="Weight: 200g; Power: 220V; Material: Stainless Steel"
                       />
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="pt-6 border-t border-gray-100 flex justify-end gap-4">
-                  <button 
+                  <button
                     type="button"
                     onClick={() => setIsModalOpen(false)}
                     className="px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition-all"
                   >
                     Cancel
                   </button>
-                  <button 
+                  <button
                     type="submit"
-                    className="bg-[#0B3C5D] text-white px-10 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-[#1F7A8C] transition-all"
+                    disabled={savingProduct || uploadingImage}
+                    className="bg-[#0B3C5D] text-white px-10 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-[#1F7A8C] transition-all disabled:opacity-50"
                   >
                     <Save size={18} />
-                    {editingProduct ? 'Update Product' : 'Save Product'}
+                    {savingProduct
+                      ? 'Saving...'
+                      : editingProduct
+                      ? 'Update Product'
+                      : 'Save Product'}
                   </button>
                 </div>
               </form>
@@ -582,18 +778,19 @@ const Inventory = () => {
           </div>
         )}
       </AnimatePresence>
+
       {/* Import Modal */}
       <AnimatePresence>
         {isImportModalOpen && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="absolute inset-0 bg-black/40 backdrop-blur-sm"
               onClick={() => importStep !== 'progress' && setIsImportModalOpen(false)}
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -602,9 +799,15 @@ const Inventory = () => {
               <div className="p-8 border-b border-gray-100 flex justify-between items-center">
                 <div>
                   <h3 className="text-2xl font-bold text-[#0B3C5D]">Bulk Import Products</h3>
-                  <p className="text-sm text-gray-400">Upload a CSV file to add multiple products</p>
+                  <p className="text-sm text-gray-400">
+                    Upload a CSV file to add multiple products
+                  </p>
                 </div>
-                <button onClick={() => setIsImportModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                <button
+                  type="button"
+                  onClick={() => setIsImportModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
                   <X size={24} />
                 </button>
               </div>
@@ -612,7 +815,7 @@ const Inventory = () => {
               <div className="p-8">
                 {importStep === 'upload' && (
                   <div className="space-y-6">
-                    <div 
+                    <div
                       className="border-2 border-dashed border-gray-200 rounded-3xl p-12 flex flex-col items-center justify-center gap-4 hover:border-[#0B3C5D] transition-colors cursor-pointer group"
                       onClick={() => document.getElementById('csv-upload')?.click()}
                     >
@@ -621,12 +824,12 @@ const Inventory = () => {
                       </div>
                       <div className="text-center">
                         <p className="font-bold text-gray-700">Click to upload CSV</p>
-                        <p className="text-xs text-gray-400">or drag and drop your file here</p>
+                        <p className="text-xs text-gray-400">or browse from your computer</p>
                       </div>
-                      <input 
-                        type="file" 
-                        id="csv-upload" 
-                        hidden 
+                      <input
+                        type="file"
+                        id="csv-upload"
+                        hidden
                         accept=".csv"
                         onChange={handleFileUpload}
                       />
@@ -635,7 +838,10 @@ const Inventory = () => {
                       <AlertCircle className="text-amber-600 shrink-0" size={20} />
                       <div className="text-xs text-amber-800 space-y-1">
                         <p className="font-bold uppercase tracking-wider">Format Requirements</p>
-                        <p>Your CSV should include columns for: Name, SKU, Category, Price, and Stock.</p>
+                        <p>
+                          Your CSV should include columns for: Name, SKU, Category, Price, and
+                          Stock.
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -644,35 +850,39 @@ const Inventory = () => {
                 {importStep === 'mapping' && (
                   <div className="space-y-6">
                     <div className="grid grid-cols-2 gap-4">
-                      {productFields.map(field => (
+                      {productFields.map((field) => (
                         <div key={field.key} className="space-y-1.5">
                           <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
                             {field.label}
                             {field.required && <span className="text-red-500">*</span>}
                           </label>
-                          <select 
+                          <select
                             className="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#0B3C5D]"
                             value={mapping[field.key] || ''}
                             onChange={(e) => setMapping({ ...mapping, [field.key]: e.target.value })}
                           >
                             <option value="">Select column...</option>
-                            {csvHeaders.map(header => (
-                              <option key={header} value={header}>{header}</option>
+                            {csvHeaders.map((header) => (
+                              <option key={header} value={header}>
+                                {header}
+                              </option>
                             ))}
                           </select>
                         </div>
                       ))}
                     </div>
                     <div className="pt-6 flex justify-between gap-4">
-                      <button 
+                      <button
+                        type="button"
                         onClick={() => setImportStep('upload')}
                         className="px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition-all border border-gray-100"
                       >
                         Back
                       </button>
-                      <button 
+                      <button
+                        type="button"
                         onClick={executeImport}
-                        disabled={productFields.filter(f => f.required).some(f => !mapping[f.key])}
+                        disabled={productFields.filter((f) => f.required).some((f) => !mapping[f.key])}
                         className="flex-grow bg-[#0B3C5D] text-white px-8 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-[#1F7A8C] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Start Import ({csvData.length} items)
@@ -687,7 +897,7 @@ const Inventory = () => {
                       <Loader2 className="text-[#0B3C5D] animate-spin" size={64} />
                       <div className="absolute inset-0 flex items-center justify-center">
                         <span className="text-xs font-black text-[#0B3C5D]">
-                          {Math.round((importProgress / importTotal) * 100)}%
+                          {Math.round((importProgress / Math.max(1, importTotal)) * 100)}%
                         </span>
                       </div>
                     </div>
@@ -695,13 +905,17 @@ const Inventory = () => {
                       <h4 className="text-xl font-bold text-gray-700">Importing Data...</h4>
                       <p className="text-sm text-gray-400">Please do not close this window</p>
                       <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden max-w-sm mx-auto">
-                        <motion.div 
+                        <motion.div
                           className="h-full bg-[#0B3C5D]"
                           initial={{ width: 0 }}
-                          animate={{ width: `${(importProgress / importTotal) * 100}%` }}
+                          animate={{
+                            width: `${(importProgress / Math.max(1, importTotal)) * 100}%`,
+                          }}
                         />
                       </div>
-                      <p className="text-xs font-mono text-gray-400">{importProgress} of {importTotal} processed</p>
+                      <p className="text-xs font-mono text-gray-400">
+                        {importProgress} of {importTotal} processed
+                      </p>
                     </div>
                   </div>
                 )}
@@ -714,7 +928,9 @@ const Inventory = () => {
                       </div>
                       <div>
                         <h4 className="text-2xl font-black text-gray-800">Import Complete!</h4>
-                        <p className="text-gray-400">Successfully imported {importTotal - importErrors.length} products</p>
+                        <p className="text-gray-400">
+                          Successfully imported {importTotal - importErrors.length} products
+                        </p>
                       </div>
                     </div>
 
@@ -734,7 +950,8 @@ const Inventory = () => {
                     )}
 
                     <div className="flex justify-center">
-                      <button 
+                      <button
+                        type="button"
                         onClick={() => setIsImportModalOpen(false)}
                         className="bg-[#0B3C5D] text-white px-12 py-3 rounded-xl font-bold hover:bg-[#1F7A8C] transition-all"
                       >

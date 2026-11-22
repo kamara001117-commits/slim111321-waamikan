@@ -1,91 +1,117 @@
-import { 
-  collection, 
-  doc, 
-  updateDoc, 
-  increment, 
+import {
+  collection,
+  doc,
   runTransaction,
-  setDoc
-} from "firebase/firestore";
-import { db, auth } from "./firebase";
-import { getAccountByCode } from "./accountingService";
+  setDoc,
+} from 'firebase/firestore';
+import { db, auth } from './firebase';
+import { getAccountByCode } from './accountingService';
+import { handleFirestoreError, OperationType } from './firestoreUtils';
 
 export const adjustStock = async (productId: string, quantity: number, reason: string) => {
-  return await runTransaction(db, async (transaction) => {
-    const productRef = doc(db, 'products', productId);
-    const productSnap = await transaction.get(productRef);
-    if (!productSnap.exists()) throw new Error("Product not found");
-    
-    // 1. Update Product Stock
-    transaction.update(productRef, {
-      stock: increment(quantity)
-    });
+  try {
+    const inventoryAccount = quantity < 0 ? await getAccountByCode('1200') : null;
+    const adjustmentExpenseAccount = quantity < 0 ? await getAccountByCode('5000') : null;
 
-    // 2. Accounting logic (if deduction, it's an expense or COGS adjustment)
-    if (quantity < 0) {
-      const inventoryAccount = await getAccountByCode('1200'); // Inventory Asset
-      const adjustmentExpenseAccount = await getAccountByCode('5000'); // COGS / Expense
-      
-      if (inventoryAccount && adjustmentExpenseAccount) {
-        // Calculate cost (simplified: using total value of adjustment)
-        // In a real ERP, we'd use FIFO/LIFO or Average Cost
-        const unitPrice = productSnap.data().price || 0;
+    return await runTransaction(db, async (transaction) => {
+      const productRef = doc(db, 'products', productId);
+      const productSnap = await transaction.get(productRef);
+      if (!productSnap.exists()) throw new Error('Product not found');
+
+      const invSnap = inventoryAccount ? await transaction.get(doc(db, 'accounts', inventoryAccount.id)) : null;
+      const expSnap = adjustmentExpenseAccount ? await transaction.get(doc(db, 'accounts', adjustmentExpenseAccount.id)) : null;
+
+      const currentStock = Number(productSnap.data().stock || 0);
+      const newStock = Math.max(0, currentStock + quantity);
+      const now = new Date().toISOString();
+
+      transaction.update(productRef, {
+        stock: newStock,
+        updatedAt: now,
+      });
+
+      if (quantity < 0 && inventoryAccount && adjustmentExpenseAccount) {
+        const unitPrice = Number(productSnap.data().price || 0);
         const totalValue = Math.abs(quantity) * unitPrice;
-        
+
         const journalRef = doc(collection(db, 'journal_entries'));
         transaction.set(journalRef, {
           id: journalRef.id,
-          date: new Date().toISOString(),
+          date: now,
           description: `Inventory Adjustment: ${reason} (${productSnap.data().name})`,
           sourceType: 'adjustment',
           status: 'posted',
           createdBy: auth.currentUser?.uid || 'system',
-          createdAt: new Date().toISOString(),
+          createdAt: now,
           lines: [
             { accountId: adjustmentExpenseAccount.id, accountName: adjustmentExpenseAccount.name, debit: totalValue, credit: 0 },
-            { accountId: inventoryAccount.id, accountName: inventoryAccount.name, debit: 0, credit: totalValue }
-          ]
+            { accountId: inventoryAccount.id, accountName: inventoryAccount.name, debit: 0, credit: totalValue },
+          ],
         });
 
-        // Update Account Balances
-        transaction.update(doc(db, 'accounts', inventoryAccount.id), { balance: increment(-totalValue) });
-        transaction.update(doc(db, 'accounts', adjustmentExpenseAccount.id), { balance: increment(totalValue) });
+        transaction.update(doc(db, 'accounts', inventoryAccount.id), {
+          balance: (invSnap?.data()?.balance || 0) - totalValue,
+          updatedAt: now,
+        });
+        transaction.update(doc(db, 'accounts', adjustmentExpenseAccount.id), {
+          balance: (expSnap?.data()?.balance || 0) + totalValue,
+          updatedAt: now,
+        });
       }
-    }
 
-    // 3. Log movement
-    const moveRef = doc(collection(db, 'inventory_movements'));
-    transaction.set(moveRef, {
-      id: moveRef.id,
-      productId,
-      quantity,
-      type: quantity > 0 ? 'Inbound' : 'Outbound',
-      reason: `Manual Adjustment: ${reason}`,
-      date: new Date().toISOString(),
-      performedBy: auth.currentUser?.uid || 'system'
+      const moveRef = doc(collection(db, 'inventory_movements'));
+      transaction.set(moveRef, {
+        id: moveRef.id,
+        productId,
+        quantity,
+        type: quantity > 0 ? 'Inbound' : 'Outbound',
+        reason: `Manual Adjustment: ${reason}`,
+        date: now,
+        performedBy: auth.currentUser?.uid || 'system',
+      });
     });
-  });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, `products/${productId}`);
+    throw error;
+  }
 };
 
 export const createInventoryLocation = async (data: any) => {
-  const ref = doc(collection(db, 'inventory_locations'));
-  await setDoc(ref, {
-     ...data,
-     id: ref.id,
-     status: 'active',
-     createdAt: new Date().toISOString()
-  });
+  try {
+    const ref = doc(collection(db, 'inventory_locations'));
+    await setDoc(ref, {
+      ...data,
+      id: ref.id,
+      status: 'active',
+      createdAt: new Date().toISOString(),
+    });
+    return ref.id;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.CREATE, 'inventory_locations');
+    throw error;
+  }
 };
 
-export const recordInternalTransfer = async (data: { productId: string, fromLoc: string, toLoc: string, quantity: number }) => {
-   return await runTransaction(db, async (transaction) => {
+export const recordInternalTransfer = async (data: {
+  productId: string;
+  fromLoc: string;
+  toLoc: string;
+  quantity: number;
+}) => {
+  try {
+    return await runTransaction(db, async (transaction) => {
       const moveRef = doc(collection(db, 'inventory_movements'));
       transaction.set(moveRef, {
-         id: moveRef.id,
-         ...data,
-         type: 'Transfer',
-         reason: `Internal Transfer from ${data.fromLoc} to ${data.toLoc}`,
-         date: new Date().toISOString(),
-         performedBy: auth.currentUser?.email || 'system'
+        id: moveRef.id,
+        ...data,
+        type: 'Transfer',
+        reason: `Internal Transfer from ${data.fromLoc} to ${data.toLoc}`,
+        date: new Date().toISOString(),
+        performedBy: auth.currentUser?.email || 'system',
       });
-   });
+    });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.CREATE, 'inventory_movements');
+    throw error;
+  }
 };

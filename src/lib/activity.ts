@@ -1,7 +1,9 @@
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc } from 'firebase/firestore';
 import { db, auth } from './firebase';
+import type { ActivityLog } from '../types';
+export type { ActivityLog };
 
-export type ActivityType = 'invoice' | 'payment' | 'product' | 'user' | 'crm';
+export type ActivityType = 'invoice' | 'payment' | 'product' | 'user' | 'crm' | 'purchase' | 'order';
 
 export const logActivity = async (
   type: ActivityType,
@@ -15,7 +17,7 @@ export const logActivity = async (
   try {
     await addDoc(collection(db, 'logs'), {
       userId: user.uid,
-      userName: user.displayName || user.email,
+      userName: user.displayName || user.email || 'Staff',
       type,
       action,
       targetId,

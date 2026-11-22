@@ -5,28 +5,47 @@
       "description": "System user with role-based access",
       "type": "object",
       "properties": {
-        "uid": { "type": "string" },
-        "email": { "type": "string", "format": "email" },
-        "displayName": { "type": "string" },
-        "photoURL": { "type": "string" },
-        "role": { "type": "string", "enum": ["super_admin", "admin", "staff"] },
+        "uid": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "format": "email", "maxLength": 128 },
+        "displayName": { "type": "string", "maxLength": 120 },
+        "photoURL": { "type": "string", "maxLength": 512 },
+        "role": {
+          "type": "string",
+          "enum": ["super_admin", "admin", "staff", "finance_manager", "inventory_manager", "sales_staff", "hr_staff", "user"]
+        },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["uid", "email", "role"]
+    },
+    "staffInvite": {
+      "title": "Staff Invite",
+      "description": "Pre-authorized staff role assignment keyed by normalized lowercase email",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email", "maxLength": 128 },
+        "role": {
+          "type": "string",
+          "enum": ["super_admin", "admin", "staff", "finance_manager", "inventory_manager", "sales_staff", "hr_staff"]
+        },
+        "invitedBy": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "role", "createdAt"]
     },
     "product": {
       "title": "Product",
       "description": "Medical supply product in inventory",
       "type": "object",
       "properties": {
-        "id": { "type": "string" },
-        "name": { "type": "string" },
-        "category": { "type": "string", "enum": ["Consumables", "Imaging", "Equipment", "Furniture", "Life Support"] },
-        "description": { "type": "string" },
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 200 },
+        "category": { "type": "string", "enum": ["Consumables", "Imaging", "Equipment", "Furniture", "Life Support", "IVD", "Treatment"] },
+        "description": { "type": "string", "maxLength": 2000 },
         "price": { "type": "number" },
         "stock": { "type": "integer" },
-        "sku": { "type": "string" },
-        "image": { "type": "string" },
+        "sku": { "type": "string", "maxLength": 64 },
+        "image": { "type": "string", "maxLength": 300000 },
+        "specs": { "type": "string", "maxLength": 2000 },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["name", "category", "price", "stock"]
@@ -36,13 +55,13 @@
       "description": "Hospital or clinic client",
       "type": "object",
       "properties": {
-        "id": { "type": "string" },
-        "name": { "type": "string" },
-        "contactPerson": { "type": "string" },
-        "email": { "type": "string" },
-        "phone": { "type": "string" },
-        "address": { "type": "string" },
-        "type": { "type": "string", "enum": ["public", "private"] },
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 200 },
+        "contactPerson": { "type": "string", "maxLength": 120 },
+        "email": { "type": "string", "maxLength": 128 },
+        "phone": { "type": "string", "maxLength": 40 },
+        "address": { "type": "string", "maxLength": 500 },
+        "type": { "type": "string", "enum": ["public", "private", "Public", "Private"] },
         "totalSpent": { "type": "number" },
         "invoiceCount": { "type": "integer" },
         "createdAt": { "type": "string", "format": "date-time" }
@@ -55,13 +74,11 @@
       "type": "object",
       "properties": {
         "id": { "type": "string" },
-        "invoiceNumber": { "type": "string" },
-        "customerId": { "type": "string" },
-        "customerName": { "type": "string" },
-        "items": {
-          "type": "array",
-          "items": { "type": "object" }
-        },
+        "invoiceNumber": { "type": "string", "maxLength": 64 },
+        "customerId": { "type": "string", "maxLength": 128 },
+        "customerName": { "type": "string", "maxLength": 200 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "items": { "type": "array" },
         "subtotal": { "type": "number" },
         "vat": { "type": "number" },
         "total": { "type": "number" },
@@ -71,9 +88,34 @@
         "dueDate": { "type": "string", "format": "date-time" },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" },
-        "pdfUrl": { "type": "string" }
+        "pdfUrl": { "type": "string", "maxLength": 1000 }
       },
       "required": ["invoiceNumber", "customerId", "items", "total", "status"]
+    },
+    "webOrder": {
+      "title": "Web Order",
+      "description": "Online store order submitted via public checkout awaiting staff invoice conversion",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "orderNumber": { "type": "string", "maxLength": 64 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "customerName": { "type": "string", "maxLength": 200 },
+        "contactName": { "type": "string", "maxLength": 120 },
+        "email": { "type": "string", "maxLength": 128 },
+        "phone": { "type": "string", "maxLength": 40 },
+        "address": { "type": "string", "maxLength": 500 },
+        "items": { "type": "array" },
+        "subtotal": { "type": "number" },
+        "vat": { "type": "number" },
+        "total": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "invoiced", "cancelled"] },
+        "invoiceId": { "type": "string", "maxLength": 128 },
+        "invoiceNumber": { "type": "string", "maxLength": 64 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["orderNumber", "customerName", "contactName", "email", "phone", "address", "items", "total", "status"]
     },
     "payment": {
       "title": "Payment",
@@ -110,14 +152,14 @@
       "type": "object",
       "properties": {
         "id": { "type": "string" },
-        "name": { "type": "string" },
-        "email": { "type": "string" },
-        "hospital": { "type": "string" },
-        "message": { "type": "string" },
+        "name": { "type": "string", "maxLength": 120 },
+        "email": { "type": "string", "maxLength": 128 },
+        "hospital": { "type": "string", "maxLength": 200 },
+        "message": { "type": "string", "maxLength": 4000 },
         "status": { "type": "string", "enum": ["new", "in_progress", "responded", "closed"] },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" },
-        "notes": { "type": "array", "items": { "type": "object" } }
+        "notes": { "type": "array" }
       },
       "required": ["name", "email", "message", "status"]
     },
@@ -138,10 +180,10 @@
       "description": "General ledger accounts",
       "type": "object",
       "properties": {
-         "code": { "type": "string" },
-         "name": { "type": "string" },
-         "type": { "type": "string" },
-         "balance": { "type": "number" }
+        "code": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "balance": { "type": "number" }
       }
     },
     "journalEntry": {
@@ -149,208 +191,199 @@
       "description": "Double-entry bookkeeping record",
       "type": "object",
       "properties": {
-         "date": { "type": "string" },
-         "reference": { "type": "string" },
-         "description": { "type": "string" },
-         "lines": { "type": "array" },
-         "status": { "type": "string" }
+        "date": { "type": "string" },
+        "reference": { "type": "string" },
+        "description": { "type": "string" },
+        "lines": { "type": "array" },
+        "status": { "type": "string" }
       }
     },
     "bankAccount": {
-       "title": "Bank Account",
-       "description": "Company bank or cash account",
-       "type": "object",
-       "properties": {
-          "name": { "type": "string" },
-          "bankName": { "type": "string" },
-          "balance": { "type": "number" }
-       }
+      "title": "Bank Account",
+      "description": "Company bank or cash account",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "bankName": { "type": "string" },
+        "balance": { "type": "number" }
+      }
     },
     "bankTransaction": {
-       "title": "Bank Transaction",
-       "description": "Cash flow record",
-       "type": "object",
-       "properties": {
-          "amount": { "type": "number" },
-          "type": { "type": "string" },
-          "description": { "type": "string" }
-       }
+      "title": "Bank Transaction",
+      "description": "Cash flow record",
+      "type": "object",
+      "properties": {
+        "amount": { "type": "number" },
+        "type": { "type": "string" },
+        "description": { "type": "string" }
+      }
     },
     "supplier": {
-       "title": "Supplier",
-       "description": "Vendor for procurement",
-       "type": "object",
-       "properties": {
-          "name": { "type": "string" },
-          "balance": { "type": "number" }
-       }
+      "title": "Supplier",
+      "description": "Vendor for procurement",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "balance": { "type": "number" }
+      }
     },
     "purchaseOrder": {
-       "title": "Purchase Order",
-       "description": "Inventory purchase request",
-       "type": "object",
-       "properties": {
-          "poNumber": { "type": "string" },
-          "total": { "type": "number" },
-          "status": { "type": "string" }
-       }
+      "title": "Purchase Order",
+      "description": "Inventory purchase request",
+      "type": "object",
+      "properties": {
+        "poNumber": { "type": "string" },
+        "total": { "type": "number" },
+        "status": { "type": "string" }
+      }
     },
     "supplierBill": {
-       "title": "Supplier Bill",
-       "description": "Vendor invoice (payable) with inventory and accounting integration",
-       "type": "object",
-       "properties": {
-          "id": { "type": "string" },
-          "billNumber": { "type": "string" },
-          "supplierId": { "type": "string" },
-          "supplierName": { "type": "string" },
-          "poId": { "type": "string" },
-          "date": { "type": "string", "format": "date" },
-          "dueDate": { "type": "string", "format": "date" },
-          "items": { 
-             "type": "array",
-             "items": {
-                "type": "object",
-                "properties": {
-                   "productId": { "type": "string" },
-                   "description": { "type": "string" },
-                   "quantity": { "type": "number" },
-                   "unitPrice": { "type": "number" },
-                   "total": { "type": "number" },
-                   "accountId": { "type": "string" }
-                }
-             }
-          },
-          "subtotal": { "type": "number" },
-          "tax": { "type": "number" },
-          "total": { "type": "number" },
-          "paidAmount": { "type": "number" },
-          "status": { "type": "string", "enum": ["Unpaid", "Partial", "Paid", "Overdue"] },
-          "createdAt": { "type": "string", "format": "date-time" }
-       },
-       "required": ["billNumber", "supplierId", "date", "items", "total", "status"]
+      "title": "Supplier Bill",
+      "description": "Vendor invoice (payable) with inventory and accounting integration",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "billNumber": { "type": "string" },
+        "supplierId": { "type": "string" },
+        "supplierName": { "type": "string" },
+        "poId": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "dueDate": { "type": "string", "format": "date" },
+        "items": { "type": "array" },
+        "subtotal": { "type": "number" },
+        "tax": { "type": "number" },
+        "total": { "type": "number" },
+        "paidAmount": { "type": "number" },
+        "status": { "type": "string", "enum": ["Unpaid", "Partial", "Paid", "Overdue"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["billNumber", "supplierId", "date", "items", "total", "status"]
     },
     "inventoryLocation": {
-       "title": "Inventory Location",
-       "description": "Warehouse or storage area",
-       "type": "object",
-       "properties": {
-          "name": { "type": "string" },
-          "code": { "type": "string" }
-       }
+      "title": "Inventory Location",
+      "description": "Warehouse or storage area",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "code": { "type": "string" }
+      }
     },
     "inventoryMovement": {
-       "title": "Inventory Movement",
-       "description": "Stock flow record",
-       "type": "object",
-       "properties": {
-          "quantity": { "type": "number" },
-          "type": { "type": "string" }
-       }
+      "title": "Inventory Movement",
+      "description": "Stock flow record",
+      "type": "object",
+      "properties": {
+        "quantity": { "type": "number" },
+        "type": { "type": "string" }
+      }
     },
     "employee": {
-       "title": "Employee",
-       "description": "Staff member profile",
-       "type": "object",
-       "properties": {
-          "firstName": { "type": "string" },
-          "lastName": { "type": "string" },
-          "position": { "type": "string" }
-       }
+      "title": "Employee",
+      "description": "Staff member profile",
+      "type": "object",
+      "properties": {
+        "firstName": { "type": "string" },
+        "lastName": { "type": "string" },
+        "position": { "type": "string" }
+      }
     },
     "payroll": {
-       "title": "Payroll",
-       "description": "Salary disbursement record",
-       "type": "object",
-       "properties": {
-          "month": { "type": "string" },
-          "netPay": { "type": "number" }
-       }
+      "title": "Payroll",
+      "description": "Salary disbursement record",
+      "type": "object",
+      "properties": {
+        "month": { "type": "string" },
+        "netPay": { "type": "number" }
+      }
     },
     "expenseClaim": {
-       "title": "Expense Claim",
-       "description": "Employee reimbursement request",
-       "type": "object",
-       "properties": {
-          "amount": { "type": "number" },
-          "status": { "type": "string" }
-       }
+      "title": "Expense Claim",
+      "description": "Employee reimbursement request",
+      "type": "object",
+      "properties": {
+        "amount": { "type": "number" },
+        "status": { "type": "string", "enum": ["Pending", "Approved", "Rejected", "Paid"] }
+      }
     },
     "salesDocument": {
-       "title": "Sales Document",
-       "description": "Quotation, Sales Order, or Delivery Note",
-       "type": "object",
-       "properties": {
-          "docNumber": { "type": "string" },
-          "type": { "type": "string" },
-          "total": { "type": "number" }
-       }
+      "title": "Sales Document",
+      "description": "Quotation, Proforma Invoice, Sales Quote, Sales Order, Delivery Note, or Credit Note",
+      "type": "object",
+      "properties": {
+        "docNumber": { "type": "string" },
+        "type": { "type": "string" },
+        "total": { "type": "number" }
+      }
     },
     "purchaseQuote": {
-       "title": "Purchase Quote",
-       "description": "Supplier pricing request",
-       "type": "object",
-       "properties": {
-          "quoteNumber": { "type": "string" },
-          "supplierId": { "type": "string" },
-          "total": { "type": "number" }
-       }
+      "title": "Purchase Quote",
+      "description": "Supplier pricing request",
+      "type": "object",
+      "properties": {
+        "quoteNumber": { "type": "string" },
+        "supplierId": { "type": "string" },
+        "total": { "type": "number" }
+      }
     },
     "goodsReceipt": {
-       "title": "Goods Receipt",
-       "description": "Record of physical goods arrival",
-       "type": "object",
-       "properties": {
-          "receiptNumber": { "type": "string" },
-          "poId": { "type": "string" },
-          "items": { "type": "array" }
-       }
+      "title": "Goods Receipt",
+      "description": "Record of physical goods arrival",
+      "type": "object",
+      "properties": {
+        "receiptNumber": { "type": "string" },
+        "poId": { "type": "string" },
+        "items": { "type": "array" }
+      }
     },
     "debitNote": {
-       "title": "Debit Note",
-       "description": "Supplier adjustment / Returns",
-       "type": "object",
-       "properties": {
-          "noteNumber": { "type": "string" },
-          "supplierId": { "type": "string" },
-          "amount": { "type": "number" }
-       }
+      "title": "Debit Note",
+      "description": "Supplier adjustment / Returns",
+      "type": "object",
+      "properties": {
+        "noteNumber": { "type": "string" },
+        "supplierId": { "type": "string" },
+        "amount": { "type": "number" }
+      }
     },
     "waybill": {
-       "title": "Waybill",
-       "description": "Logistics and transport tracking",
-       "type": "object",
-       "properties": {
-          "waybillNumber": { "type": "string" },
-          "deliveryNoteId": { "type": "string" },
-          "status": { "type": "string" }
-       }
+      "title": "Waybill",
+      "description": "Logistics and transport tracking",
+      "type": "object",
+      "properties": {
+        "waybillNumber": { "type": "string" },
+        "deliveryNoteId": { "type": "string" },
+        "status": { "type": "string" }
+      }
     },
     "payslip": {
-       "title": "Payslip",
-       "description": "Employee monthly salary breakdown",
-       "type": "object",
-       "properties": {
-          "employeeId": { "type": "string" },
-          "month": { "type": "string" },
-          "netPay": { "type": "number" },
-          "journalEntryId": { "type": "string" }
-       }
+      "title": "Payslip",
+      "description": "Employee monthly salary breakdown",
+      "type": "object",
+      "properties": {
+        "employeeId": { "type": "string" },
+        "month": { "type": "string" },
+        "netPay": { "type": "number" },
+        "journalEntryId": { "type": "string" }
+      }
     },
     "setting": {
-       "title": "System Setting",
-       "description": "Configuration and profiles",
-       "type": "object",
-       "properties": {
-          "key": { "type": "string" },
-          "value": { "type": "object" }
-       }
+      "title": "System Setting",
+      "description": "Configuration and profiles",
+      "type": "object",
+      "properties": {
+        "key": { "type": "string" },
+        "value": { "type": "object" }
+      }
     }
   },
   "firestore": {
     "/users/{userId}": {
       "schema": "user",
       "description": "User profiles and roles"
+    },
+    "/staff_invites/{inviteEmail}": {
+      "schema": "staffInvite",
+      "description": "Email-keyed staff role invitations"
     },
     "/products/{productId}": {
       "schema": "product",
@@ -363,6 +396,10 @@
     "/invoices/{invoiceId}": {
       "schema": "invoice",
       "description": "Billing and invoices"
+    },
+    "/web_orders/{orderId}": {
+      "schema": "webOrder",
+      "description": "Public online store checkout orders"
     },
     "/payments/{paymentId}": {
       "schema": "payment",

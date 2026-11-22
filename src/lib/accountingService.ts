@@ -1,17 +1,15 @@
-import { 
-  collection, 
-  doc, 
-  setDoc, 
-  updateDoc, 
-  getDoc, 
-  increment, 
-  query, 
-  where, 
+import {
+  collection,
+  doc,
+  setDoc,
+  query,
+  where,
   getDocs,
-  runTransaction 
-} from "firebase/firestore";
-import { db } from "./firebase";
-import { Account, JournalEntry, JournalLine, AccountType } from "../types/erp";
+  runTransaction,
+} from 'firebase/firestore';
+import { db } from './firebase';
+import { Account, JournalEntry, AccountType } from '../types/erp';
+import { handleFirestoreError, OperationType } from './firestoreUtils';
 
 const ACCOUNTS_COLLECTION = 'accounts';
 const JOURNAL_COLLECTION = 'journal_entries';
@@ -33,82 +31,124 @@ export const initializeSystemAccounts = async () => {
     { code: '5100', name: 'Purchase Returns', type: 'Revenue' as AccountType, isSystem: true },
   ];
 
-  for (const acc of systemAccounts) {
-    const q = query(collection(db, ACCOUNTS_COLLECTION), where('code', '==', acc.code));
-    const snapshot = await getDocs(q);
-    if (snapshot.empty) {
-      const newAccRef = doc(collection(db, ACCOUNTS_COLLECTION));
-      await setDoc(newAccRef, {
-        ...acc,
-        id: newAccRef.id,
-        balance: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      });
+  try {
+    for (const acc of systemAccounts) {
+      const q = query(collection(db, ACCOUNTS_COLLECTION), where('code', '==', acc.code));
+      const snapshot = await getDocs(q);
+      if (snapshot.empty) {
+        const newAccRef = doc(collection(db, ACCOUNTS_COLLECTION));
+        const now = new Date().toISOString();
+        await setDoc(newAccRef, {
+          ...acc,
+          id: newAccRef.id,
+          balance: 0,
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
     }
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, ACCOUNTS_COLLECTION);
   }
 };
 
 /**
- * Record a double-entry journal entry
+ * Record a double-entry journal entry with normal-balance rules per account type
  */
 export const recordJournalEntry = async (entry: Omit<JournalEntry, 'id' | 'createdAt'>) => {
-  return await runTransaction(db, async (transaction) => {
-    // 1. Verify balances (Debits must equal Credits)
-    const totalDebit = entry.lines.reduce((sum, line) => sum + line.debit, 0);
-    const totalCredit = entry.lines.reduce((sum, line) => sum + line.credit, 0);
+  const totalDebit = entry.lines.reduce((sum, line) => sum + (Number(line.debit) || 0), 0);
+  const totalCredit = entry.lines.reduce((sum, line) => sum + (Number(line.credit) || 0), 0);
 
-    if (Math.abs(totalDebit - totalCredit) > 0.01) {
-      throw new Error("Journal entry must be balanced (Debits = Credits)");
-    }
+  if (entry.lines.length === 0) {
+    throw new Error('Journal entry must contain at least one line.');
+  }
+  if (entry.lines.some((l) => !l.accountId)) {
+    throw new Error('All journal lines must have a selected account.');
+  }
+  if (Math.abs(totalDebit - totalCredit) > 0.01) {
+    throw new Error('Journal entry must be balanced (Debits = Credits)');
+  }
 
-    const journalRef = doc(collection(db, JOURNAL_COLLECTION));
-    const newEntry = {
-      ...entry,
-      id: journalRef.id,
-      createdAt: new Date().toISOString()
-    };
+  try {
+    return await runTransaction(db, async (transaction) => {
+      // 1. Read all unique referenced accounts FIRST before any writes
+      const uniqueAccountIds = Array.from(new Set(entry.lines.map((l) => l.accountId)));
+      const accountSnaps = await Promise.all(
+        uniqueAccountIds.map((id) => transaction.get(doc(db, ACCOUNTS_COLLECTION, id)))
+      );
 
-    // 2. Update account balances
-    for (const line of entry.lines) {
-      const accountRef = doc(db, ACCOUNTS_COLLECTION, line.accountId);
-      const balanceChange = line.debit - line.credit;
-      
-      // Note: In accounting, Assets/Expenses increase with Debit (+)
-      // Liabilities/Equity/Revenue increase with Credit (-)
-      // We'll store balance such that positive means Debit balance for A/E and Credit balance for L/Eq/R
-      // BUT for simplicity, let's just stick to absolute math relative to account type
-      
-      transaction.update(accountRef, {
-        balance: increment(balanceChange),
-        updatedAt: new Date().toISOString()
+      const accountMap = new Map<string, Account>();
+      accountSnaps.forEach((snap) => {
+        if (snap.exists()) {
+          accountMap.set(snap.id, { id: snap.id, ...snap.data() } as Account);
+        }
       });
-    }
 
-    transaction.set(journalRef, newEntry);
-    return journalRef.id;
-  });
+      // Aggregate net balance deltas per account according to normal balance
+      const deltaMap = new Map<string, number>();
+      for (const line of entry.lines) {
+        const acc = accountMap.get(line.accountId);
+        if (!acc) {
+          throw new Error(`Account ${line.accountId} not found.`);
+        }
+        const debit = Number(line.debit) || 0;
+        const credit = Number(line.credit) || 0;
+        // Asset & Expense increase on Debit; Liability, Equity, & Revenue increase on Credit
+        const isDebitNormal = acc.type === 'Asset' || acc.type === 'Expense';
+        const delta = isDebitNormal ? debit - credit : credit - debit;
+        deltaMap.set(line.accountId, (deltaMap.get(line.accountId) || 0) + delta);
+      }
+
+      const now = new Date().toISOString();
+      const journalRef = doc(collection(db, JOURNAL_COLLECTION));
+      const newEntry = {
+        ...entry,
+        id: journalRef.id,
+        createdAt: now,
+      };
+
+      // 2. Perform all writes AFTER all reads
+      deltaMap.forEach((delta, accountId) => {
+        const acc = accountMap.get(accountId)!;
+        const accountRef = doc(db, ACCOUNTS_COLLECTION, accountId);
+        transaction.update(accountRef, {
+          balance: (acc.balance || 0) + delta,
+          updatedAt: now,
+        });
+      });
+
+      transaction.set(journalRef, newEntry);
+      return journalRef.id;
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('not found')) {
+      throw error;
+    }
+    handleFirestoreError(error, OperationType.WRITE, JOURNAL_COLLECTION);
+  }
 };
 
 /**
  * Get account by its unique code (e.g., '1100' for Accounts Receivable)
  */
 export const getAccountByCode = async (code: string): Promise<Account | null> => {
-  const q = query(collection(db, ACCOUNTS_COLLECTION), where('code', '==', code));
-  const snapshot = await getDocs(q);
-  if (snapshot.empty) return null;
-  return snapshot.docs[0].data() as Account;
+  try {
+    const q = query(collection(db, ACCOUNTS_COLLECTION), where('code', '==', code));
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) return null;
+    const d = snapshot.docs[0];
+    return { id: d.id, ...d.data() } as Account;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.GET, ACCOUNTS_COLLECTION);
+    return null;
+  }
 };
 
-/**
- * Specific ERP events that trigger accounting
- */
-
 export const recordInvoiceAccounting = async (invoiceId: string, amount: number) => {
-  const arAccount = await getAccountByCode('1100'); // Accounts Receivable
-  const revenueAccount = await getAccountByCode('4000'); // Sales Revenue
+  const arAccount = await getAccountByCode('1100');
+  const revenueAccount = await getAccountByCode('4000');
 
-  if (!arAccount || !revenueAccount) throw new Error("Accounting system not initialized");
+  if (!arAccount || !revenueAccount) throw new Error('Accounting system not initialized');
 
   await recordJournalEntry({
     date: new Date().toISOString(),
@@ -119,16 +159,21 @@ export const recordInvoiceAccounting = async (invoiceId: string, amount: number)
     createdBy: 'system',
     lines: [
       { accountId: arAccount.id, accountName: arAccount.name, debit: amount, credit: 0 },
-      { accountId: revenueAccount.id, accountName: revenueAccount.name, debit: 0, credit: amount }
-    ]
+      { accountId: revenueAccount.id, accountName: revenueAccount.name, debit: 0, credit: amount },
+    ],
   });
 };
 
-export const recordPaymentAccounting = async (paymentId: string, invoiceId: string, amount: number, method: string) => {
-  const arAccount = await getAccountByCode('1100'); // Accounts Receivable
-  const cashAccount = await getAccountByCode('1000'); // Cash on Hand
+export const recordPaymentAccounting = async (
+  paymentId: string,
+  invoiceId: string,
+  amount: number,
+  method: string
+) => {
+  const arAccount = await getAccountByCode('1100');
+  const cashAccount = await getAccountByCode('1000');
 
-  if (!arAccount || !cashAccount) throw new Error("Accounting system not initialized");
+  if (!arAccount || !cashAccount) throw new Error('Accounting system not initialized');
 
   await recordJournalEntry({
     date: new Date().toISOString(),
@@ -139,7 +184,7 @@ export const recordPaymentAccounting = async (paymentId: string, invoiceId: stri
     createdBy: 'system',
     lines: [
       { accountId: cashAccount.id, accountName: cashAccount.name, debit: amount, credit: 0 },
-      { accountId: arAccount.id, accountName: arAccount.name, debit: 0, credit: amount }
-    ]
+      { accountId: arAccount.id, accountName: arAccount.name, debit: 0, credit: amount },
+    ],
   });
 };

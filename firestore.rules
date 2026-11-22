@@ -7,209 +7,724 @@ service cloud.firestore {
     }
 
     // --- Helper Functions ---
-    function isSignedIn() { return request.auth != null; }
-    
-    // Efficiently get user role without recursive lookups
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidEmailId(id) {
+      return id is string && id.size() >= 3 && id.size() <= 128 && id.matches('^[a-zA-Z0-9._%+\\-@]+$');
+    }
+
+    function isSuperAdminEmail() {
+      return isVerified() &&
+             request.auth.token.email is string &&
+             request.auth.token.email.lower() in ['marufadam7777@gmail.com', 'waamikan@gmail.com'];
+    }
+
+    function userDocExists() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
     function getUserRole() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
     }
-    
-    function hasRole(role) { 
-      return isSignedIn() && getUserRole() == role; 
-    }
-    
-    function isSuperAdmin() { return hasRole('super_admin'); }
-    function isAdmin() { return hasRole('admin') || isSuperAdmin(); }
-    function isStaff() { 
-      let role = getUserRole();
-      return isSignedIn() && (
-        role == 'staff' || 
-        role == 'admin' || 
-        role == 'super_admin' || 
-        role == 'finance_manager' || 
-        role == 'inventory_manager' || 
-        role == 'sales_staff' || 
-        role == 'hr_staff'
-      );
-    }
-    
-    function isValidId(id) { 
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
-    }
-    function incoming() { return request.resource.data; }
-    function existing() { return resource.data; }
 
-    // --- Enterprise Security Blueprints ---
+    function isSuperAdmin() {
+      return isSuperAdminEmail() || (isVerified() && userDocExists() && getUserRole() == 'super_admin');
+    }
+
+    function isAdmin() {
+      return isSuperAdmin() || (isVerified() && userDocExists() && getUserRole() == 'admin');
+    }
+
+    function isStaff() {
+      return isSuperAdmin() || (isVerified() && userDocExists() && getUserRole() in [
+        'admin',
+        'super_admin',
+        'staff',
+        'finance_manager',
+        'inventory_manager',
+        'sales_staff',
+        'hr_staff'
+      ]);
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function hasValidInvite() {
+      return isVerified() &&
+             request.auth.token.email is string &&
+             exists(/databases/$(database)/documents/staff_invites/$(request.auth.token.email.lower()));
+    }
+
+    function getInviteRole() {
+      return get(/databases/$(database)/documents/staff_invites/$(request.auth.token.email.lower())).data.role;
+    }
+
+    function optionalString(data, field, maxLen) {
+      return !(field in data) || (data[field] is string && data[field].size() <= maxLen);
+    }
+
+    function optionalNullableString(data, field, maxLen) {
+      return !(field in data) || data[field] == null || (data[field] is string && data[field].size() <= maxLen);
+    }
+
+    // --- Validation Blueprints ---
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'role']) &&
+             data.keys().hasOnly(['uid', 'email', 'displayName', 'name', 'photoURL', 'role', 'createdAt', 'invitedBy', 'updatedAt']) &&
+             data.uid is string && data.uid.size() > 0 && data.uid.size() <= 128 &&
+             data.email is string && data.email.size() >= 3 && data.email.size() <= 128 &&
+             data.role in ['super_admin', 'admin', 'staff', 'finance_manager', 'inventory_manager', 'sales_staff', 'hr_staff', 'user'] &&
+             optionalString(data, 'displayName', 120) &&
+             optionalString(data, 'name', 120) &&
+             optionalString(data, 'photoURL', 512) &&
+             optionalString(data, 'createdAt', 64) &&
+             optionalString(data, 'invitedBy', 128) &&
+             optionalString(data, 'updatedAt', 64);
+    }
+
+    function isValidStaffInvite(data) {
+      return data.keys().hasAll(['email', 'role', 'createdAt']) &&
+             data.keys().hasOnly(['email', 'role', 'invitedBy', 'createdAt', 'updatedAt']) &&
+             data.email is string && data.email.size() >= 3 && data.email.size() <= 128 &&
+             data.role in ['super_admin', 'admin', 'staff', 'finance_manager', 'inventory_manager', 'sales_staff', 'hr_staff'] &&
+             data.createdAt is string && data.createdAt.size() <= 64 &&
+             optionalString(data, 'invitedBy', 128) &&
+             optionalString(data, 'updatedAt', 64);
+    }
+
+    function isValidProduct(data) {
+      return data.keys().hasAll(['name', 'category', 'price', 'stock']) &&
+             data.keys().hasOnly(['id', 'name', 'category', 'description', 'price', 'stock', 'sku', 'image', 'specs', 'createdAt', 'updatedAt']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 200 &&
+             data.category in ['Consumables', 'Imaging', 'Equipment', 'Furniture', 'Life Support', 'IVD', 'Treatment'] &&
+             data.price is number && data.price >= 0 &&
+             data.stock is number && data.stock >= 0 &&
+             optionalString(data, 'id', 128) &&
+             optionalString(data, 'description', 2000) &&
+             optionalString(data, 'sku', 64) &&
+             optionalString(data, 'image', 300000) &&
+             optionalString(data, 'specs', 2000) &&
+             optionalString(data, 'createdAt', 64) &&
+             optionalString(data, 'updatedAt', 64);
+    }
+
+    function isValidCustomer(data) {
+      return data.keys().hasAll(['name', 'email']) &&
+             data.keys().hasOnly(['id', 'name', 'contactPerson', 'email', 'phone', 'address', 'type', 'totalSpent', 'invoiceCount', 'lastContacted', 'createdAt', 'updatedAt']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 200 &&
+             data.email is string && data.email.size() <= 128 &&
+             optionalString(data, 'id', 128) &&
+             optionalString(data, 'contactPerson', 120) &&
+             optionalString(data, 'phone', 40) &&
+             optionalString(data, 'address', 500) &&
+             optionalString(data, 'lastContacted', 64) &&
+             (!( 'type' in data ) || data.type in ['public', 'private', 'Public', 'Private']) &&
+             (!( 'totalSpent' in data ) || data.totalSpent is number) &&
+             (!( 'invoiceCount' in data ) || data.invoiceCount is number) &&
+             optionalString(data, 'createdAt', 64) &&
+             optionalString(data, 'updatedAt', 64);
+    }
+
+    function isValidInvoice(data) {
+      return data.keys().hasAll(['invoiceNumber', 'customerId', 'items', 'total', 'status']) &&
+             data.keys().hasOnly(['id', 'invoiceNumber', 'customerId', 'customerName', 'userId', 'items', 'subtotal', 'vat', 'total', 'paidAmount', 'remainingBalance', 'status', 'dueDate', 'createdAt', 'updatedAt', 'pdfUrl', 'webOrderId']) &&
+             data.invoiceNumber is string && data.invoiceNumber.size() > 0 && data.invoiceNumber.size() <= 64 &&
+             data.customerId is string && data.customerId.size() > 0 && data.customerId.size() <= 128 &&
+             data.items is list && data.items.size() <= 100 &&
+             data.total is number && data.total >= 0 &&
+             data.status in ['draft', 'sent', 'paid', 'partial', 'overdue', 'Paid'] &&
+             optionalString(data, 'id', 128) &&
+             optionalString(data, 'customerName', 200) &&
+             optionalNullableString(data, 'userId', 128) &&
+             optionalString(data, 'dueDate', 64) &&
+             optionalString(data, 'createdAt', 64) &&
+             optionalString(data, 'updatedAt', 64) &&
+             optionalString(data, 'pdfUrl', 1000) &&
+             optionalString(data, 'webOrderId', 128);
+    }
+
+    function isValidWebOrder(data) {
+      return data.keys().hasAll(['orderNumber', 'customerName', 'contactName', 'email', 'phone', 'address', 'items', 'total', 'status']) &&
+             data.keys().hasOnly(['id', 'orderNumber', 'userId', 'customerName', 'contactName', 'email', 'phone', 'address', 'items', 'subtotal', 'vat', 'total', 'status', 'invoiceId', 'invoiceNumber', 'createdAt', 'updatedAt']) &&
+             data.orderNumber is string && data.orderNumber.size() > 0 && data.orderNumber.size() <= 64 &&
+             data.customerName is string && data.customerName.size() > 0 && data.customerName.size() <= 200 &&
+             data.contactName is string && data.contactName.size() > 0 && data.contactName.size() <= 120 &&
+             data.email is string && data.email.size() >= 3 && data.email.size() <= 128 &&
+             data.phone is string && data.phone.size() > 0 && data.phone.size() <= 40 &&
+             data.address is string && data.address.size() > 0 && data.address.size() <= 500 &&
+             data.items is list && data.items.size() > 0 && data.items.size() <= 100 &&
+             data.total is number && data.total >= 0 &&
+             data.status in ['pending', 'invoiced', 'cancelled'] &&
+             optionalNullableString(data, 'userId', 128) &&
+             optionalString(data, 'id', 128) &&
+             optionalString(data, 'invoiceId', 128) &&
+             optionalString(data, 'invoiceNumber', 64) &&
+             optionalString(data, 'createdAt', 64) &&
+             optionalString(data, 'updatedAt', 64);
+    }
+
+    function isValidPayment(data) {
+      return data.keys().hasAll(['invoiceId', 'amount', 'date', 'method']) &&
+             data.keys().hasOnly(['id', 'invoiceId', 'invoiceNumber', 'amount', 'method', 'reference', 'chequeNumber', 'date', 'recordedBy', 'recordedByName']) &&
+             data.invoiceId is string && data.invoiceId.size() <= 128 &&
+             data.amount is number && data.amount > 0 &&
+             data.method is string && data.method.size() <= 40 &&
+             data.date is string && data.date.size() <= 64 &&
+             optionalString(data, 'id', 128) &&
+             optionalString(data, 'invoiceNumber', 64) &&
+             optionalString(data, 'reference', 128) &&
+             optionalString(data, 'chequeNumber', 64) &&
+             optionalString(data, 'recordedBy', 128) &&
+             optionalString(data, 'recordedByName', 120);
+    }
+
+    function isValidReceipt(data) {
+      return data.keys().hasAll(['receiptNumber', 'paymentId', 'invoiceId', 'amount']) &&
+             data.keys().hasOnly(['id', 'receiptNumber', 'paymentId', 'invoiceId', 'invoiceNumber', 'customerId', 'customerName', 'amount', 'method', 'chequeNumber', 'remainingBalance', 'date', 'createdAt', 'pdfUrl']) &&
+             data.receiptNumber is string && data.receiptNumber.size() <= 64 &&
+             data.paymentId is string && data.paymentId.size() <= 128 &&
+             data.invoiceId is string && data.invoiceId.size() <= 128 &&
+             data.amount is number && data.amount >= 0 &&
+             optionalString(data, 'id', 128) &&
+             optionalString(data, 'invoiceNumber', 64) &&
+             optionalString(data, 'customerId', 128) &&
+             optionalString(data, 'customerName', 200) &&
+             optionalString(data, 'method', 40) &&
+             optionalString(data, 'chequeNumber', 64) &&
+             optionalString(data, 'date', 64) &&
+             optionalString(data, 'createdAt', 64) &&
+             optionalString(data, 'pdfUrl', 1000);
+    }
+
+    function isValidRequest(data) {
+      return data.keys().hasAll(['name', 'email', 'message', 'status']) &&
+             data.keys().hasOnly(['id', 'name', 'email', 'hospital', 'message', 'status', 'lastContacted', 'createdAt', 'updatedAt', 'notes']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 120 &&
+             data.email is string && data.email.size() >= 3 && data.email.size() <= 128 &&
+             data.message is string && data.message.size() > 0 && data.message.size() <= 4000 &&
+             data.status in ['new', 'in_progress', 'responded', 'closed'] &&
+             optionalString(data, 'id', 128) &&
+             optionalString(data, 'hospital', 200) &&
+             optionalString(data, 'lastContacted', 64) &&
+             optionalString(data, 'createdAt', 64) &&
+             optionalString(data, 'updatedAt', 64) &&
+             (!( 'notes' in data ) || (data.notes is list && data.notes.size() <= 50));
+    }
+
+    function isValidLog(data) {
+      return data.keys().hasAll(['userId', 'action', 'type', 'timestamp']) &&
+             data.keys().hasOnly(['id', 'userId', 'userName', 'action', 'type', 'targetId', 'details', 'timestamp']) &&
+             data.userId is string && data.userId.size() <= 128 &&
+             data.action is string && data.action.size() <= 500 &&
+             data.type is string && data.type.size() <= 64 &&
+             data.timestamp is string && data.timestamp.size() <= 64 &&
+             optionalString(data, 'userName', 120) &&
+             optionalString(data, 'targetId', 128) &&
+             optionalString(data, 'details', 1000);
+    }
 
     function isValidAccount(data) {
       return data.keys().hasAll(['code', 'name', 'type', 'balance']) &&
-             data.code is string && data.name is string && data.balance is number;
+             data.keys().hasOnly(['id', 'code', 'name', 'type', 'balance', 'isSystem', 'description', 'createdAt', 'updatedAt']) &&
+             data.code is string && data.code.size() > 0 && data.code.size() <= 32 &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 120 &&
+             data.type in ['Asset', 'Liability', 'Equity', 'Revenue', 'Expense'] &&
+             data.balance is number &&
+             optionalString(data, 'id', 128) &&
+             optionalString(data, 'description', 500) &&
+             optionalString(data, 'createdAt', 64) &&
+             optionalString(data, 'updatedAt', 64);
     }
 
     function isValidJournalEntry(data) {
-      return data.keys().hasAll(['date', 'reference', 'description', 'lines', 'status']) &&
-             data.date is string && data.lines is list && data.lines.size() > 0;
+      return data.keys().hasAll(['date', 'description', 'lines']) &&
+             data.keys().hasOnly(['id', 'date', 'reference', 'description', 'lines', 'status', 'sourceType', 'createdBy', 'createdAt', 'updatedAt']) &&
+             data.date is string && data.date.size() <= 64 &&
+             data.description is string && data.description.size() <= 500 &&
+             data.lines is list && data.lines.size() > 0 && data.lines.size() <= 50 &&
+             optionalString(data, 'id', 128) &&
+             optionalString(data, 'reference', 128) &&
+             optionalString(data, 'status', 32) &&
+             optionalString(data, 'sourceType', 32) &&
+             optionalString(data, 'createdBy', 128) &&
+             optionalString(data, 'createdAt', 64);
     }
 
-    // --- ERP Collection Rules ---
+    function isValidCounter(data) {
+      return data.keys().hasOnly(['lastNumber']) &&
+             data.lastNumber is number && data.lastNumber >= 0;
+    }
 
-    // Settings
+    function isValidBankAccount(data) {
+      return data.keys().hasAll(['name', 'bankName', 'balance']) &&
+             data.keys().hasOnly(['id', 'name', 'bankName', 'accountNumber', 'currency', 'balance', 'type', 'status', 'createdAt', 'updatedAt']) &&
+             data.name is string && data.name.size() <= 120 &&
+             data.bankName is string && data.bankName.size() <= 120 &&
+             data.balance is number &&
+             optionalString(data, 'id', 128) &&
+             optionalString(data, 'accountNumber', 64) &&
+             optionalString(data, 'currency', 16) &&
+             optionalString(data, 'type', 32) &&
+             optionalString(data, 'status', 32) &&
+             optionalString(data, 'createdAt', 64) &&
+             optionalString(data, 'updatedAt', 64);
+    }
+
+    function isValidBankTransaction(data) {
+      return data.keys().hasAll(['amount', 'type', 'description']) &&
+             data.keys().hasOnly(['id', 'bankAccountId', 'amount', 'type', 'description', 'payee', 'date', 'reference', 'reconciled', 'matchedId', 'createdAt']) &&
+             data.amount is number &&
+             data.type is string && data.type.size() <= 32 &&
+             data.description is string && data.description.size() <= 500 &&
+             optionalString(data, 'id', 128) &&
+             optionalString(data, 'bankAccountId', 128) &&
+             optionalString(data, 'payee', 120) &&
+             optionalString(data, 'date', 64) &&
+             optionalString(data, 'reference', 128) &&
+             optionalString(data, 'matchedId', 128) &&
+             optionalString(data, 'createdAt', 64);
+    }
+
+    function isValidSupplier(data) {
+      return data.keys().hasAll(['name']) &&
+             data.keys().hasOnly(['id', 'name', 'contactPerson', 'email', 'phone', 'address', 'category', 'paymentTerms', 'balance', 'createdAt', 'updatedAt']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 200 &&
+             optionalString(data, 'id', 128) &&
+             optionalString(data, 'contactPerson', 120) &&
+             optionalString(data, 'email', 128) &&
+             optionalString(data, 'phone', 40) &&
+             optionalString(data, 'address', 500) &&
+             optionalString(data, 'category', 64) &&
+             optionalString(data, 'paymentTerms', 64) &&
+             (!( 'balance' in data ) || data.balance is number) &&
+             optionalString(data, 'createdAt', 64);
+    }
+
+    function isValidPurchaseQuote(data) {
+      return data.keys().hasAll(['quoteNumber', 'supplierId', 'total', 'status']) &&
+             data.keys().hasOnly(['id', 'quoteNumber', 'supplierId', 'supplierName', 'items', 'total', 'status', 'validUntil', 'notes', 'createdAt']) &&
+             data.quoteNumber is string && data.quoteNumber.size() <= 64 &&
+             data.supplierId is string && data.supplierId.size() <= 128 &&
+             data.total is number && data.total >= 0 &&
+             data.status is string && data.status.size() <= 32 &&
+             (!( 'items' in data ) || (data.items is list && data.items.size() <= 100));
+    }
+
+    function isValidPurchaseOrder(data) {
+      return data.keys().hasAll(['poNumber', 'supplierId', 'total', 'status']) &&
+             data.keys().hasOnly(['id', 'poNumber', 'supplierId', 'supplierName', 'items', 'total', 'status', 'date', 'expectedDate', 'notes', 'createdAt']) &&
+             data.poNumber is string && data.poNumber.size() <= 64 &&
+             data.supplierId is string && data.supplierId.size() <= 128 &&
+             data.total is number && data.total >= 0 &&
+             data.status is string && data.status.size() <= 32 &&
+             (!( 'items' in data ) || (data.items is list && data.items.size() <= 100));
+    }
+
+    function isValidSupplierBill(data) {
+      return data.keys().hasAll(['billNumber', 'supplierId', 'date', 'items', 'total', 'status']) &&
+             data.keys().hasOnly(['id', 'billNumber', 'supplierId', 'supplierName', 'poId', 'date', 'dueDate', 'items', 'subtotal', 'tax', 'total', 'paidAmount', 'status', 'paidAt', 'createdAt']) &&
+             data.billNumber is string && data.billNumber.size() <= 64 &&
+             data.supplierId is string && data.supplierId.size() <= 128 &&
+             data.date is string && data.date.size() <= 64 &&
+             data.items is list && data.items.size() <= 100 &&
+             data.total is number && data.total >= 0 &&
+             data.status in ['Unpaid', 'Partial', 'Paid', 'Overdue'];
+    }
+
+    function isValidGoodsReceipt(data) {
+      return data.keys().hasAll(['receiptNumber', 'items']) &&
+             data.keys().hasOnly(['id', 'receiptNumber', 'poId', 'poNumber', 'deliveryNote', 'supplierId', 'supplierName', 'items', 'notes', 'receivedBy', 'createdAt']) &&
+             data.receiptNumber is string && data.receiptNumber.size() <= 64 &&
+             data.items is list && data.items.size() <= 100 &&
+             optionalString(data, 'deliveryNote', 128);
+    }
+
+    function isValidDebitNote(data) {
+      return data.keys().hasAll(['noteNumber', 'supplierId', 'amount']) &&
+             data.keys().hasOnly(['id', 'noteNumber', 'supplierId', 'supplierName', 'billId', 'amount', 'reason', 'status', 'createdAt']) &&
+             data.noteNumber is string && data.noteNumber.size() <= 64 &&
+             data.supplierId is string && data.supplierId.size() <= 128 &&
+             data.amount is number && data.amount >= 0;
+    }
+
+    function isValidWaybill(data) {
+      return data.keys().hasAll(['status']) &&
+             data.keys().hasOnly(['id', 'waybillNumber', 'deliveryNoteId', 'deliveryNoteNumber', 'customerId', 'customerName', 'destination', 'driverName', 'driverPhone', 'vehicleNumber', 'items', 'notes', 'status', 'createdAt', 'updatedAt']) &&
+             data.status is string && data.status.size() <= 32 &&
+             optionalString(data, 'waybillNumber', 64) &&
+             optionalString(data, 'destination', 300) &&
+             optionalString(data, 'driverName', 120) &&
+             optionalString(data, 'driverPhone', 40) &&
+             optionalString(data, 'vehicleNumber', 64) &&
+             (!( 'items' in data ) || (data.items is list && data.items.size() <= 100));
+    }
+
+    function isValidInventoryLocation(data) {
+      return data.keys().hasAll(['name']) &&
+             data.keys().hasOnly(['id', 'name', 'code', 'address', 'type', 'manager', 'status', 'createdAt']) &&
+             data.name is string && data.name.size() <= 120 &&
+             optionalString(data, 'code', 64);
+    }
+
+    function isValidInventoryMovement(data) {
+      return data.keys().hasAll(['productId', 'quantity', 'type']) &&
+             data.keys().hasOnly(['id', 'productId', 'productName', 'fromLoc', 'toLoc', 'quantity', 'type', 'reason', 'date', 'performedBy']) &&
+             data.productId is string && data.productId.size() <= 128 &&
+             data.quantity is number &&
+             data.type in ['Inbound', 'Outbound', 'Transfer', 'Adjustment'];
+    }
+
+    function isValidEmployee(data) {
+      return data.keys().hasAll(['firstName', 'lastName']) &&
+             data.keys().hasOnly(['id', 'employeeId', 'firstName', 'lastName', 'email', 'phone', 'department', 'position', 'salary', 'status', 'hireDate', 'joiningDate', 'createdAt', 'updatedAt']) &&
+             data.firstName is string && data.firstName.size() <= 80 &&
+             data.lastName is string && data.lastName.size() <= 80 &&
+             optionalString(data, 'employeeId', 64) &&
+             optionalString(data, 'email', 128) &&
+             optionalString(data, 'position', 120) &&
+             optionalString(data, 'joiningDate', 64);
+    }
+
+    function isValidPayrollRecord(data) {
+      return data.keys().hasAll(['employeeId', 'month', 'netPay']) &&
+             data.keys().hasOnly(['id', 'employeeId', 'employeeName', 'month', 'baseSalary', 'allowances', 'deductions', 'netPay', 'status', 'journalEntryId', 'createdAt']) &&
+             data.employeeId is string && data.employeeId.size() <= 128 &&
+             data.month is string && data.month.size() <= 32 &&
+             data.netPay is number && data.netPay >= 0 &&
+             optionalString(data, 'journalEntryId', 128);
+    }
+
+    function isValidExpenseClaim(data) {
+      return data.keys().hasAll(['amount', 'status']) &&
+             data.keys().hasOnly(['id', 'employeeId', 'employeeName', 'category', 'description', 'amount', 'total', 'date', 'status', 'approvedBy', 'approvedAt', 'rejectedBy', 'rejectedAt', 'paidAt', 'bankAccountId', 'createdAt', 'createdBy']) &&
+             data.amount is number && data.amount > 0 &&
+             data.status in ['Pending', 'Approved', 'Rejected', 'Paid'];
+    }
+
+    function isValidSalesDocument(data) {
+      return data.keys().hasAll(['docNumber', 'type', 'customerId', 'total', 'status']) &&
+             data.keys().hasOnly(['id', 'docNumber', 'type', 'customerId', 'customerName', 'items', 'total', 'status', 'date', 'validUntil', 'linkedInvoiceId', 'linkedOrderId', 'waybillId', 'notes', 'createdAt', 'updatedAt']) &&
+             data.docNumber is string && data.docNumber.size() <= 64 &&
+             data.type in ['Quotation', 'SalesQuote', 'SalesOrder', 'DeliveryNote', 'CreditNote', 'ProformaInvoice'] &&
+             data.customerId is string && data.customerId.size() <= 128 &&
+             data.total is number && data.total >= 0 &&
+             data.status is string && data.status.size() <= 32 &&
+             (!( 'items' in data ) || (data.items is list && data.items.size() <= 100));
+    }
+
+    function isValidSetting(data) {
+      return data.keys().hasOnly(['company', 'workflow', 'tax', 'companyName', 'address', 'email', 'phone', 'currency', 'vatRate', 'invoicePrefix', 'receiptPrefix', 'updatedAt']) &&
+             (!( 'company' in data ) || data.company is map) &&
+             (!( 'workflow' in data ) || data.workflow is map) &&
+             (!( 'tax' in data ) || data.tax is map) &&
+             optionalString(data, 'companyName', 200) &&
+             optionalString(data, 'address', 500) &&
+             optionalString(data, 'email', 128) &&
+             optionalString(data, 'phone', 80) &&
+             optionalString(data, 'currency', 16) &&
+             optionalString(data, 'invoicePrefix', 32) &&
+             optionalString(data, 'receiptPrefix', 32);
+    }
+
+    // --- Health Check Document ---
+    match /test/{docId} {
+      allow get: if docId == 'connection';
+    }
+
+    // --- Core Identity & RBAC Collections ---
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isStaff());
+      allow list: if isStaff();
+      allow create: if isValidId(userId) && isVerified() && isValidUser(incoming()) && (
+        isSuperAdmin() ||
+        (isOwner(userId) &&
+         incoming().uid == request.auth.uid &&
+         request.auth.token.email is string &&
+         incoming().email.lower() == request.auth.token.email.lower() && (
+           incoming().role == 'user' ||
+           (isSuperAdminEmail() && incoming().role == 'super_admin') ||
+           (hasValidInvite() && incoming().role == getInviteRole())
+         ))
+      );
+      allow update: if isValidId(userId) && isVerified() && isValidUser(incoming()) && (
+        isSuperAdmin() ||
+        (isOwner(userId) &&
+         incoming().uid == existing().uid &&
+         incoming().email == existing().email && (
+           (incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'name', 'photoURL', 'updatedAt'])) ||
+           (isSuperAdminEmail() && incoming().role == 'super_admin') ||
+           (hasValidInvite() && incoming().role == getInviteRole() && incoming().diff(existing()).affectedKeys().hasOnly(['role', 'displayName', 'name', 'photoURL', 'updatedAt']))
+         ))
+      );
+      allow delete: if isValidId(userId) && isSuperAdmin();
+    }
+
+    match /staff_invites/{inviteEmail} {
+      allow get: if isValidEmailId(inviteEmail) && (
+        isSuperAdmin() ||
+        (isVerified() && request.auth.token.email is string && request.auth.token.email.lower() == inviteEmail)
+      );
+      allow list: if isSuperAdmin();
+      allow create, update: if isValidEmailId(inviteEmail) && isSuperAdmin() && isValidStaffInvite(incoming());
+      allow delete: if isValidEmailId(inviteEmail) && isSuperAdmin();
+    }
+
+    // --- Public Storefront & Orders ---
+    match /products/{productId} {
+      allow get: if isValidId(productId);
+      allow list: if true;
+      allow create: if isValidId(productId) && isAdmin() && isValidProduct(incoming());
+      allow update: if isValidId(productId) && isValidProduct(incoming()) && (
+        isAdmin() ||
+        (isStaff() && incoming().diff(existing()).affectedKeys().hasOnly(['stock', 'updatedAt']))
+      );
+      allow delete: if isValidId(productId) && isAdmin();
+    }
+
+    match /web_orders/{orderId} {
+      allow get: if isValidId(orderId) && (
+        isStaff() ||
+        (isSignedIn() && existing().userId == request.auth.uid)
+      );
+      allow list: if isStaff() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if isValidId(orderId) &&
+        isValidWebOrder(incoming()) &&
+        incoming().status == 'pending' &&
+        (
+          (!isSignedIn() && (!('userId' in incoming()) || incoming().userId == null)) ||
+          (isSignedIn() && incoming().userId == request.auth.uid)
+        );
+      allow update: if isValidId(orderId) && isStaff() && isValidWebOrder(incoming());
+      allow delete: if isValidId(orderId) && isAdmin();
+    }
+
+    match /requests/{requestId} {
+      allow create: if isValidId(requestId) &&
+        isValidRequest(incoming()) &&
+        incoming().status == 'new';
+      allow get: if isValidId(requestId) && isStaff();
+      allow list: if isStaff();
+      allow update: if isValidId(requestId) && isStaff() && isValidRequest(incoming());
+      allow delete: if isValidId(requestId) && isStaff();
+    }
+
+    // --- Billing & Customer Operations ---
+    match /customers/{customerId} {
+      allow get: if isValidId(customerId) && isStaff();
+      allow list: if isStaff();
+      allow create, update: if isValidId(customerId) && isStaff() && isValidCustomer(incoming());
+      allow delete: if isValidId(customerId) && isAdmin();
+    }
+
+    match /invoices/{invoiceId} {
+      allow get: if isValidId(invoiceId) && (
+        isStaff() ||
+        (isSignedIn() && existing().userId == request.auth.uid)
+      );
+      allow list: if isStaff() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if isValidId(invoiceId) && isStaff() && isValidInvoice(incoming());
+      allow update: if isValidId(invoiceId) && isValidInvoice(incoming()) && (
+        isAdmin() ||
+        (isStaff() && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'pdfUrl', 'paidAmount', 'remainingBalance', 'updatedAt']))
+      );
+      allow delete: if isValidId(invoiceId) && isAdmin();
+    }
+
+    match /payments/{paymentId} {
+      allow get: if isValidId(paymentId) && isStaff();
+      allow list: if isStaff();
+      allow create: if isValidId(paymentId) && isStaff() && isValidPayment(incoming());
+      allow update: if isValidId(paymentId) && isAdmin() && isValidPayment(incoming());
+      allow delete: if isValidId(paymentId) && isAdmin();
+    }
+
+    match /receipts/{receiptId} {
+      allow get: if isValidId(receiptId) && isStaff();
+      allow list: if isStaff();
+      allow create: if isValidId(receiptId) && isStaff() && isValidReceipt(incoming());
+      allow update: if isValidId(receiptId) && isStaff() && isValidReceipt(incoming()) && (
+        isAdmin() ||
+        incoming().diff(existing()).affectedKeys().hasOnly(['pdfUrl'])
+      );
+      allow delete: if isValidId(receiptId) && isAdmin();
+    }
+
+    match /counters/{counterId} {
+      allow get: if isValidId(counterId) && isStaff();
+      allow create, update: if isValidId(counterId) && isStaff() && isValidCounter(incoming());
+    }
+
+    // --- ERP Financials & Accounting ---
     match /settings/{settingId} {
-      allow read: if isStaff();
-      allow write: if isAdmin();
+      allow get: if isValidId(settingId) && isStaff();
+      allow list: if isStaff();
+      allow create, update: if isValidId(settingId) && isAdmin() && isValidSetting(incoming());
+      allow delete: if isValidId(settingId) && isSuperAdmin();
     }
 
-    // Accounting & Journal
     match /accounts/{accountId} {
-      allow read: if isStaff();
-      allow write: if isAdmin();
-      allow update: if isStaff() && incoming().diff(existing()).affectedKeys().hasOnly(['balance', 'updatedAt']);
+      allow get: if isValidId(accountId) && isStaff();
+      allow list: if isStaff();
+      allow create: if isValidId(accountId) && isStaff() && isValidAccount(incoming());
+      allow update: if isValidId(accountId) && isValidAccount(incoming()) && (
+        isAdmin() ||
+        (isStaff() && incoming().diff(existing()).affectedKeys().hasOnly(['balance', 'updatedAt']))
+      );
+      allow delete: if isValidId(accountId) && isAdmin();
     }
 
     match /journal_entries/{entryId} {
-      allow read: if isStaff();
-      allow create: if isStaff();
-      allow update: if isAdmin(); // Only admins can modify posted journals
+      allow get: if isValidId(entryId) && isStaff();
+      allow list: if isStaff();
+      allow create: if isValidId(entryId) && isStaff() && isValidJournalEntry(incoming());
+      allow update: if isValidId(entryId) && isAdmin() && isValidJournalEntry(incoming());
+      allow delete: if isValidId(entryId) && isSuperAdmin();
     }
 
-    // Banking
     match /bank_accounts/{accountId} {
-      allow read: if isStaff();
-      allow write: if isAdmin();
+      allow get: if isValidId(accountId) && isStaff();
+      allow list: if isStaff();
+      allow create, update: if isValidId(accountId) && isAdmin() && isValidBankAccount(incoming());
+      allow delete: if isValidId(accountId) && isSuperAdmin();
     }
 
     match /bank_transactions/{txId} {
-      allow read: if isStaff();
-      allow create, update: if isStaff();
+      allow get: if isValidId(txId) && isStaff();
+      allow list: if isStaff();
+      allow create, update: if isValidId(txId) && isStaff() && isValidBankTransaction(incoming());
+      allow delete: if isValidId(txId) && isAdmin();
     }
 
-    // Procurement
+    // --- Procurement & Suppliers ---
     match /suppliers/{supplierId} {
-      allow read: if isStaff();
-      allow write: if isStaff();
+      allow get: if isValidId(supplierId) && isStaff();
+      allow list: if isStaff();
+      allow create, update: if isValidId(supplierId) && isStaff() && isValidSupplier(incoming());
+      allow delete: if isValidId(supplierId) && isAdmin();
     }
 
     match /purchase_quotes/{quoteId} {
-      allow read, write: if isStaff();
+      allow get: if isValidId(quoteId) && isStaff();
+      allow list: if isStaff();
+      allow create, update: if isValidId(quoteId) && isStaff() && isValidPurchaseQuote(incoming());
+      allow delete: if isValidId(quoteId) && isAdmin();
     }
 
     match /purchase_orders/{poId} {
-      allow read: if isStaff();
-      allow write: if isStaff();
+      allow get: if isValidId(poId) && isStaff();
+      allow list: if isStaff();
+      allow create, update: if isValidId(poId) && isStaff() && isValidPurchaseOrder(incoming());
+      allow delete: if isValidId(poId) && isAdmin();
     }
 
     match /supplier_bills/{billId} {
-      allow read: if isStaff();
-      allow write: if isStaff();
+      allow get: if isValidId(billId) && isStaff();
+      allow list: if isStaff();
+      allow create, update: if isValidId(billId) && isStaff() && isValidSupplierBill(incoming());
+      allow delete: if isValidId(billId) && isAdmin();
     }
 
     match /goods_receipts/{receiptId} {
-      allow read, write: if isStaff();
+      allow get: if isValidId(receiptId) && isStaff();
+      allow list: if isStaff();
+      allow create, update: if isValidId(receiptId) && isStaff() && isValidGoodsReceipt(incoming());
+      allow delete: if isValidId(receiptId) && isAdmin();
     }
 
     match /debit_notes/{noteId} {
-      allow read, write: if isStaff();
+      allow get: if isValidId(noteId) && isStaff();
+      allow list: if isStaff();
+      allow create, update: if isValidId(noteId) && isStaff() && isValidDebitNote(incoming());
+      allow delete: if isValidId(noteId) && isAdmin();
     }
 
-    // Logistics
+    // --- Sales & Logistics ---
+    match /sales_documents/{docId} {
+      allow get: if isValidId(docId) && isStaff();
+      allow list: if isStaff();
+      allow create, update: if isValidId(docId) && isStaff() && isValidSalesDocument(incoming());
+      allow delete: if isValidId(docId) && isAdmin();
+    }
+
     match /waybills/{waybillId} {
-      allow read, write: if isStaff();
+      allow get: if isValidId(waybillId) && isStaff();
+      allow list: if isStaff();
+      allow create, update: if isValidId(waybillId) && isStaff() && isValidWaybill(incoming());
+      allow delete: if isValidId(waybillId) && isAdmin();
     }
 
-    // Inventory & Warehouse
+    // --- Warehouse & Inventory ---
     match /inventory_locations/{locId} {
-      allow read: if isStaff();
-      allow write: if isAdmin();
+      allow get: if isValidId(locId) && isStaff();
+      allow list: if isStaff();
+      allow create, update: if isValidId(locId) && isStaff() && isValidInventoryLocation(incoming());
+      allow delete: if isValidId(locId) && isAdmin();
     }
 
     match /inventory_movements/{moveId} {
-      allow read: if isStaff();
-      allow create: if isStaff();
+      allow get: if isValidId(moveId) && isStaff();
+      allow list: if isStaff();
+      allow create: if isValidId(moveId) && isStaff() && isValidInventoryMovement(incoming());
+      allow delete: if isValidId(moveId) && isAdmin();
     }
 
-    // Human Resources
+    // --- Human Resources & Payroll ---
     match /employees/{empId} {
-      allow read: if isStaff();
-      allow write: if isAdmin();
+      allow get: if isValidId(empId) && isStaff();
+      allow list: if isStaff();
+      allow create, update: if isValidId(empId) && isStaff() && isValidEmployee(incoming());
+      allow delete: if isValidId(empId) && isAdmin();
     }
 
     match /payroll/{payId} {
-      allow read: if isStaff();
-      allow create, update: if isAdmin();
+      allow get: if isValidId(payId) && isStaff();
+      allow list: if isStaff();
+      allow create, update: if isValidId(payId) && isStaff() && isValidPayrollRecord(incoming());
+      allow delete: if isValidId(payId) && isAdmin();
+    }
+
+    match /payslips/{payslipId} {
+      allow get: if isValidId(payslipId) && isStaff();
+      allow list: if isStaff();
+      allow create, update: if isValidId(payslipId) && isStaff() && isValidPayrollRecord(incoming());
+      allow delete: if isValidId(payslipId) && isAdmin();
     }
 
     match /expense_claims/{claimId} {
-      allow read: if isStaff();
-      allow create: if isSignedIn();
-      allow update: if isStaff();
+      allow get: if isValidId(claimId) && isStaff();
+      allow list: if isStaff();
+      allow create: if isValidId(claimId) && isStaff() && isValidExpenseClaim(incoming()) && incoming().status == 'Pending';
+      allow update: if isValidId(claimId) && isStaff() && isValidExpenseClaim(incoming());
+      allow delete: if isValidId(claimId) && isAdmin();
     }
 
-    // Sales Operations
-    match /sales_documents/{docId} {
-      allow read: if isStaff();
-      allow create, update: if isStaff();
-    }
-
-    // --- Core System Collections (Restated) ---
-
-    // USERS: Profile management
-    match /users/{userId} {
-      allow read: if isSignedIn() && (request.auth.uid == userId || isStaff());
-      allow write: if isSuperAdmin();
-      allow create: if isSignedIn() && request.auth.uid == userId;
-    }
-
-    // COUNTERS: System sequence counters
-    match /counters/{counterId} {
-      allow read: if isStaff();
-      allow update: if isStaff();
-    }
-
-    // PRODUCTS: Public visibility, controlled updates
-    match /products/{productId} {
-      allow read: if true; // Public catalog
-      allow create, delete: if isAdmin();
-      allow update: if isAdmin() || (isStaff() && incoming().diff(existing()).affectedKeys().hasOnly(['stock', 'updatedAt']));
-    }
-
-    // CUSTOMERS: Staff and above
-    match /customers/{customerId} {
-      allow read: if isStaff();
-      allow write: if isStaff();
-    }
-
-    // INVOICES: Financial tracking
-    match /invoices/{invoiceId} {
-      allow read: if isStaff();
-      allow create: if isStaff();
-      allow delete: if isAdmin();
-      allow update: if isAdmin() || (isStaff() && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'pdfUrl', 'paidAmount', 'remainingBalance', 'updatedAt']));
-    }
-
-    // PAYMENTS: Recorded by staff, deleted by Admin
-    match /payments/{paymentId} {
-      allow read: if isStaff();
-      allow create: if isStaff();
-      allow delete: if isAdmin();
-    }
-
-    // RECEIPTS: Public (with link) or Internal
-    match /receipts/{receiptId} {
-      allow read: if true; // Accessed via secure URL/PDF
-      allow create: if isStaff();
-      allow delete: if isAdmin();
-    }
-
-    // REQUESTS: Public lead creation
-    match /requests/{requestId} {
-      allow create: if true; // Public contact form
-      allow read, update, delete: if isStaff();
-    }
-
-    // LOGS: Audit trails
+    // --- System Logs ---
     match /logs/{logId} {
-      allow read: if isStaff();
-      allow create: if isSignedIn(); // System logs
+      allow get: if isValidId(logId) && isStaff();
+      allow list: if isStaff();
+      allow create: if isValidId(logId) && isSignedIn() && isValidLog(incoming()) && incoming().userId == request.auth.uid;
+      allow delete: if isValidId(logId) && isSuperAdmin();
     }
   }
 }

@@ -1,4 +1,12 @@
-export type UserRole = 'super_admin' | 'admin' | 'staff' | 'finance_manager' | 'inventory_manager' | 'sales_staff' | 'hr_staff';
+export type UserRole =
+  | 'super_admin'
+  | 'admin'
+  | 'staff'
+  | 'finance_manager'
+  | 'inventory_manager'
+  | 'sales_staff'
+  | 'hr_staff'
+  | 'user';
 
 export interface AppUser {
   uid: string;
@@ -6,6 +14,14 @@ export interface AppUser {
   displayName: string;
   photoURL: string;
   role: UserRole;
+  createdAt: string;
+}
+
+export interface StaffInvite {
+  id?: string;
+  email: string;
+  role: UserRole;
+  invitedBy: string;
   createdAt: string;
 }
 
@@ -29,10 +45,11 @@ export interface Customer {
   email: string;
   phone: string;
   address: string;
-  type: 'public' | 'private';
+  type: 'public' | 'private' | 'Public' | 'Private';
   totalSpent: number;
   invoiceCount: number;
   createdAt: string;
+  lastContacted?: string;
 }
 
 export interface InvoiceItem {
@@ -50,7 +67,7 @@ export interface Invoice {
   invoiceNumber: string;
   customerId: string;
   customerName: string;
-  userId?: string;
+  userId?: string | null;
   items: InvoiceItem[];
   subtotal: number;
   vat: number;
@@ -62,6 +79,26 @@ export interface Invoice {
   createdAt: string;
   updatedAt: string;
   pdfUrl?: string;
+}
+
+export interface WebOrder {
+  id: string;
+  orderNumber: string;
+  userId?: string | null;
+  customerName: string;
+  contactName: string;
+  email: string;
+  phone: string;
+  address: string;
+  items: InvoiceItem[];
+  subtotal: number;
+  vat: number;
+  total: number;
+  status: 'pending' | 'invoiced' | 'cancelled';
+  invoiceId?: string;
+  invoiceNumber?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export type PaymentMethod = 'Cash' | 'Bank Transfer' | 'Mobile Money' | 'Cheque';
@@ -92,6 +129,7 @@ export interface Receipt {
   chequeNumber?: string;
   remainingBalance: number;
   date: string;
+  createdAt?: string;
   pdfUrl: string;
 }
 
@@ -104,6 +142,7 @@ export interface CRMRequest {
   status: 'new' | 'in_progress' | 'responded' | 'closed';
   createdAt: string;
   updatedAt: string;
+  lastContacted?: string;
   notes?: RequestNote[];
   assignedTo?: string;
 }
@@ -120,7 +159,7 @@ export interface ActivityLog {
   userId: string;
   userName: string;
   action: string;
-  type: 'invoice' | 'payment' | 'product' | 'user' | 'crm';
+  type: 'invoice' | 'payment' | 'product' | 'user' | 'crm' | 'purchase' | 'order';
   targetId: string;
   timestamp: string;
   details: string;

@@ -1,0 +1,28 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function isSuperAdmin() {
+      return isSignedIn() && request.auth.token.email.lower() in [
+        'marufadam7777@gmail.com',
+        'waamikan@gmail.com'
+      ];
+    }
+
+    match /products/{allPaths=**} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    match /invoices/{allPaths=**} {
+      allow read, write: if isSignedIn() || isSuperAdmin();
+    }
+
+    match /receipts/{allPaths=**} {
+      allow read, write: if isSignedIn() || isSuperAdmin();
+    }
+  }
+}

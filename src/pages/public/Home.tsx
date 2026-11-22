@@ -186,9 +186,12 @@ const Home = () => {
               <p className="text-blue-100/70 text-lg mb-8 leading-relaxed">
                 Discover how we are revolutionizing the delivery of medical products across Ghana through automated logistics and smart inventory management.
               </p>
-              <button className="border-2 border-white px-8 py-3 rounded-full font-bold hover:bg-white hover:text-[#0B3C5D] transition-all">
+              <Link
+                to="/about"
+                className="inline-block border-2 border-white px-8 py-3 rounded-full font-bold hover:bg-white hover:text-[#0B3C5D] transition-all"
+              >
                 Read the Story
-              </button>
+              </Link>
             </div>
             <div className="lg:w-1/2 grid grid-cols-2 gap-6">
               <div className="space-y-6">

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Users, Building2, CheckCircle2 } from 'lucide-react';
 
@@ -104,9 +105,9 @@ const Clients = () => {
           <h2 className="text-4xl font-black tracking-tight">Become a Waamikan Partner</h2>
           <p className="text-xl opacity-90">Ready to upgrade your hospital's equipment? Join the network of excellence.</p>
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="inline-block">
-             <a href="/contact" className="bg-white text-[#1F7A8C] px-10 py-5 rounded-2xl font-black text-xl shadow-2xl hover:bg-gray-100 transition-all">
+             <Link to="/contact" className="inline-block bg-white text-[#1F7A8C] px-10 py-5 rounded-2xl font-black text-xl shadow-2xl hover:bg-gray-100 transition-all">
                 Request a Consultation
-             </a>
+             </Link>
           </motion.div>
         </div>
       </section>
