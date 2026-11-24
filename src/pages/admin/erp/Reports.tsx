@@ -157,8 +157,9 @@ const Reports = () => {
         <div className="text-right text-xs">
           <p className="font-black text-white uppercase">{COMPANY_INFO.name}</p>
           <p className="text-blue-100">{COMPANY_INFO.address}</p>
-          <p className="font-bold text-[#FACC15]">
-            Tel: {COMPANY_INFO.phonesDisplay} | Email: {COMPANY_INFO.email}
+          <p className="text-white">
+            <span className="font-bold text-[#FACC15]">Tel:</span> {COMPANY_INFO.phonesDisplay} |{' '}
+            <span className="font-bold text-[#FACC15]">Email:</span> {COMPANY_INFO.email}
           </p>
         </div>
       </div>

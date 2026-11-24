@@ -323,9 +323,31 @@ const drawCompanyHeader = (doc: jsPDF, fillColor: [number, number, number], righ
   doc.text(COMPANY_INFO.tagline, 43, 31);
   doc.text(COMPANY_INFO.address, 43, 36.5);
 
-  doc.setTextColor(250, 204, 21);
+  let contactX = 43;
+  const contactY = 42;
+  doc.setFontSize(8.5);
+
+  const telLabel = 'Tel: ';
   doc.setFont('helvetica', 'bold');
-  doc.text(`Tel: ${COMPANY_INFO.phonesDisplay} | Email: ${COMPANY_INFO.email}`, 43, 42);
+  doc.setTextColor(250, 204, 21);
+  doc.text(telLabel, contactX, contactY);
+  contactX += doc.getTextWidth(telLabel);
+
+  const phonesPart = `${COMPANY_INFO.phonesDisplay} | `;
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(255, 255, 255);
+  doc.text(phonesPart, contactX, contactY);
+  contactX += doc.getTextWidth(phonesPart);
+
+  const emailLabel = 'Email: ';
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(250, 204, 21);
+  doc.text(emailLabel, contactX, contactY);
+  contactX += doc.getTextWidth(emailLabel);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(255, 255, 255);
+  doc.text(COMPANY_INFO.email, contactX, contactY);
 
   if (rightBadgeText) {
     const label = rightBadgeText.toUpperCase();
