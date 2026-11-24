@@ -6,6 +6,8 @@ import { Account, JournalEntry } from '@/src/types/erp';
 import { recordJournalEntry } from '@/src/lib/accountingService';
 import { handleFirestoreError, OperationType } from '@/src/lib/firestoreUtils';
 import { safeFormatDate } from '@/src/lib/dateUtils';
+import { COMPANY_INFO } from '@/src/constants/auth';
+import Logo from '@/src/components/ui/Logo';
 import {
   Calculator,
   Plus,
@@ -151,6 +153,15 @@ const Accounting = () => {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="hidden print:flex items-center justify-between border-b-2 border-[#0B3C5D] pb-4 mb-6">
+        <Logo className="h-14" />
+        <div className="text-right text-xs text-gray-600">
+          <p className="font-black text-[#0B3C5D] uppercase">{COMPANY_INFO.name}</p>
+          <p>{COMPANY_INFO.address}</p>
+          <p>{COMPANY_INFO.phonesDisplay} | {COMPANY_INFO.email}</p>
+        </div>
+      </div>
+
       {/* Financial Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">

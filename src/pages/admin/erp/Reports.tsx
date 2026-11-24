@@ -6,6 +6,8 @@ import { Account, SupplierBill } from '@/src/types/erp';
 import { Invoice } from '@/src/types';
 import { handleFirestoreError, OperationType } from '@/src/lib/firestoreUtils';
 import { safeDate, safeFormatDate } from '@/src/lib/dateUtils';
+import { COMPANY_INFO } from '@/src/constants/auth';
+import Logo from '@/src/components/ui/Logo';
 import {
   BarChart3,
   PieChart,
@@ -143,6 +145,15 @@ const Reports = () => {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="hidden print:flex items-center justify-between border-b-2 border-[#0B3C5D] pb-4 mb-6">
+        <Logo className="h-14" />
+        <div className="text-right text-xs text-gray-600">
+          <p className="font-black text-[#0B3C5D] uppercase">{COMPANY_INFO.name}</p>
+          <p>{COMPANY_INFO.address}</p>
+          <p>{COMPANY_INFO.phonesDisplay} | {COMPANY_INFO.email}</p>
+        </div>
+      </div>
+
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div>
           <h2 className="text-2xl sm:text-3xl font-black text-[#0B3C5D] tracking-tight uppercase">

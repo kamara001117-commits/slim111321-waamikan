@@ -16,7 +16,128 @@ const safeUploadBlob = async (path: string, blob: Blob): Promise<string> => {
   }
 };
 
-const compressImageToDataUrl = (file: File, maxWidth = 800, quality = 0.72): Promise<string> => {
+const drawBottomLogoWatermark = (
+  ctx: CanvasRenderingContext2D,
+  canvasWidth: number,
+  canvasHeight: number
+) => {
+  const minDim = Math.min(canvasWidth, canvasHeight);
+  const scale = Math.max(0.55, Math.min(1.6, minDim / 680));
+
+  const badgeHeight = Math.round(52 * scale);
+  const iconRadius = Math.round(18 * scale);
+  const gap = Math.round(10 * scale);
+  const padX = Math.round(14 * scale);
+
+  const titleFontSize = Math.round(20 * scale);
+  const subFontSize = Math.max(8, Math.round(8.5 * scale));
+
+  ctx.save();
+  ctx.font = `900 ${titleFontSize}px Inter, system-ui, -apple-system, sans-serif`;
+  const titleText = 'WAAMIKAN';
+  const titleWidth = ctx.measureText(titleText).width;
+
+  ctx.font = `800 ${subFontSize}px Inter, system-ui, -apple-system, sans-serif`;
+  const subText = 'SUPPLY & IMAGING';
+  const subWidth = ctx.measureText(subText).width;
+  const barWidth = Math.round(22 * scale);
+  const subRowWidth = barWidth + Math.round(6 * scale) + subWidth;
+
+  const textBlockWidth = Math.max(titleWidth, subRowWidth);
+  const lockupWidth = iconRadius * 2 + gap + textBlockWidth;
+  const pillWidth = lockupWidth + padX * 2;
+  const pillHeight = badgeHeight;
+
+  const marginBottom = Math.max(10, Math.round(canvasHeight * 0.032));
+  const pillX = Math.round((canvasWidth - pillWidth) / 2);
+  const pillY = canvasHeight - marginBottom - pillHeight;
+  const pillRadius = Math.round(pillHeight / 2);
+
+  // Subtle translucent frosted pill so watermark stays transparent yet crisp on any photo
+  ctx.globalAlpha = 0.46;
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.72)';
+  ctx.strokeStyle = 'rgba(11, 60, 93, 0.25)';
+  ctx.lineWidth = Math.max(1, 1.5 * scale);
+  ctx.beginPath();
+  ctx.roundRect(pillX, pillY, pillWidth, pillHeight, pillRadius);
+  ctx.fill();
+  ctx.stroke();
+
+  // Circular WAAMIKAN Precision Medical Symbol matching Home page Logo.tsx
+  const cx = pillX + padX + iconRadius;
+  const cy = pillY + pillHeight / 2;
+
+  // Outer precision ring
+  ctx.beginPath();
+  ctx.arc(cx, cy, iconRadius, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+  ctx.fill();
+  ctx.lineWidth = Math.max(1, 1.6 * scale);
+  ctx.strokeStyle = 'rgba(11, 60, 93, 0.35)';
+  ctx.stroke();
+
+  // Stylized 'W' in deep navy (#0B3C5D)
+  const pts: [number, number][] = [
+    [cx - iconRadius * 0.5, cy - iconRadius * 0.24],
+    [cx - iconRadius * 0.22, cy + iconRadius * 0.34],
+    [cx, cy - iconRadius * 0.04],
+    [cx + iconRadius * 0.22, cy + iconRadius * 0.34],
+    [cx + iconRadius * 0.5, cy - iconRadius * 0.24],
+  ];
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = Math.max(2, 3.2 * scale);
+  ctx.strokeStyle = '#0B3C5D';
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length; i++) {
+    ctx.lineTo(pts[i][0], pts[i][1]);
+  }
+  ctx.stroke();
+
+  // Gold Imaging Beam inner chevron (#EAB308)
+  ctx.strokeStyle = '#EAB308';
+  ctx.beginPath();
+  ctx.moveTo(pts[1][0], pts[1][1]);
+  ctx.lineTo(pts[2][0], pts[2][1]);
+  ctx.lineTo(pts[3][0], pts[3][1]);
+  ctx.stroke();
+
+  // Gold focal node dot
+  ctx.beginPath();
+  ctx.arc(pts[2][0], pts[2][1], Math.max(1.5, 2.2 * scale), 0, Math.PI * 2);
+  ctx.fillStyle = '#EAB308';
+  ctx.fill();
+
+  // Text Lockup: WAAMIKAN + gold bar + SUPPLY & IMAGING
+  const textX = pillX + padX + iconRadius * 2 + gap;
+  const titleY = cy + Math.round(2 * scale);
+
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = '#0B3C5D';
+  ctx.font = `900 ${titleFontSize}px Inter, system-ui, -apple-system, sans-serif`;
+  ctx.fillText(titleText, textX, titleY);
+
+  const subRowY = titleY + Math.round(10 * scale);
+  const barHeight = Math.max(2.5, Math.round(3.5 * scale));
+  ctx.fillStyle = '#EAB308';
+  ctx.beginPath();
+  ctx.roundRect(textX, subRowY - barHeight - Math.round(1.5 * scale), barWidth, barHeight, barHeight / 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#1F7A8C';
+  ctx.font = `800 ${subFontSize}px Inter, system-ui, -apple-system, sans-serif`;
+  ctx.fillText(subText, textX + barWidth + Math.round(6 * scale), subRowY);
+
+  ctx.restore();
+};
+
+const renderWatermarkedImage = (
+  file: File,
+  maxWidth = 1000,
+  quality = 0.85
+): Promise<{ blob: Blob; dataUrl: string }> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = () => reject(new Error('Failed to read image file'));
@@ -25,8 +146,8 @@ const compressImageToDataUrl = (file: File, maxWidth = 800, quality = 0.72): Pro
       img.onerror = () => reject(new Error('Invalid image file'));
       img.onload = () => {
         const scale = img.width > maxWidth ? maxWidth / img.width : 1;
-        const width = Math.round(img.width * scale);
-        const height = Math.round(img.height * scale);
+        const width = Math.max(1, Math.round(img.width * scale));
+        const height = Math.max(1, Math.round(img.height * scale));
         const canvas = document.createElement('canvas');
         canvas.width = width;
         canvas.height = height;
@@ -36,8 +157,24 @@ const compressImageToDataUrl = (file: File, maxWidth = 800, quality = 0.72): Pro
           return;
         }
         ctx.drawImage(img, 0, 0, width, height);
-        const compressed = canvas.toDataURL('image/jpeg', quality);
-        resolve(compressed);
+        drawBottomLogoWatermark(ctx, width, height);
+
+        let fallbackDataUrl = canvas.toDataURL('image/jpeg', Math.min(quality, 0.74));
+        if (fallbackDataUrl.length > 270000) {
+          fallbackDataUrl = canvas.toDataURL('image/jpeg', 0.55);
+        }
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              reject(new Error('Failed to export watermarked image'));
+              return;
+            }
+            resolve({ blob, dataUrl: fallbackDataUrl });
+          },
+          'image/jpeg',
+          quality
+        );
       };
       img.src = reader.result as string;
     };
@@ -46,35 +183,94 @@ const compressImageToDataUrl = (file: File, maxWidth = 800, quality = 0.72): Pro
 };
 
 export const uploadProductImage = async (file: File): Promise<string> => {
-  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-  const storageUrl = await safeUploadBlob(`products/${Date.now()}_${safeName}`, file);
+  const safeBaseName = file.name.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9._-]/g, '_') || 'product';
+  const { blob, dataUrl } = await renderWatermarkedImage(file);
+  const storageUrl = await safeUploadBlob(`products/${Date.now()}_${safeBaseName}.jpg`, blob);
   if (storageUrl) return storageUrl;
-  return await compressImageToDataUrl(file);
+  return dataUrl;
+};
+
+const drawWaamikanLogoPDF = (doc: jsPDF, cx: number, cy: number, r: number) => {
+  // Subtle outer halo ring
+  doc.setDrawColor(186, 230, 253);
+  doc.setLineWidth(0.45);
+  doc.circle(cx, cy, r * 1.15, 'S');
+
+  // Crisp white circular badge backing so mark stands out on navy or teal banners
+  doc.setFillColor(255, 255, 255);
+  doc.circle(cx, cy, r, 'F');
+
+  // Stylized 'W' coordinates matching Logo.tsx
+  const x1 = cx - r * 0.5;
+  const y1 = cy - r * 0.24;
+  const x2 = cx - r * 0.22;
+  const y2 = cy + r * 0.34;
+  const x3 = cx;
+  const y3 = cy - r * 0.04;
+  const x4 = cx + r * 0.22;
+  const y4 = cy + r * 0.34;
+  const x5 = cx + r * 0.5;
+  const y5 = cy - r * 0.24;
+
+  doc.setLineCap('round');
+  doc.setLineJoin('round');
+  doc.setLineWidth(r * 0.19);
+  doc.setDrawColor(11, 60, 93);
+  doc.line(x1, y1, x2, y2);
+  doc.line(x2, y2, x3, y3);
+  doc.line(x3, y3, x4, y4);
+  doc.line(x4, y4, x5, y5);
+
+  // Gold Imaging Beam chevron
+  doc.setDrawColor(234, 179, 8);
+  doc.line(x2, y2, x3, y3);
+  doc.line(x3, y3, x4, y4);
+
+  // Gold focal node dot
+  doc.setFillColor(234, 179, 8);
+  doc.circle(x3, y3, r * 0.11, 'F');
+
+  // Reset stroke defaults
+  doc.setLineCap('butt');
+  doc.setLineJoin('miter');
+  doc.setLineWidth(0.2);
 };
 
 const drawCompanyHeader = (doc: jsPDF, fillColor: [number, number, number], rightBadgeText?: string, badgeColor?: [number, number, number]) => {
   doc.setFillColor(fillColor[0], fillColor[1], fillColor[2]);
   doc.rect(0, 0, 210, 52, 'F');
 
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(22);
-  doc.setFont('helvetica', 'bold');
-  doc.text(COMPANY_INFO.name, 16, 20);
+  drawWaamikanLogoPDF(doc, 26, 26, 11);
 
-  doc.setFontSize(9);
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(19);
+  doc.setFont('helvetica', 'bold');
+  doc.text(COMPANY_INFO.name, 43, 20);
+
+  // Brand gold accent bar + Supply & Imaging subtitle
+  doc.setFillColor(234, 179, 8);
+  doc.roundedRect(43, 22.8, 14, 1.5, 0.7, 0.7, 'F');
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(186, 230, 253);
+  doc.text('SUPPLY & IMAGING', 60, 24.3);
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(8.5);
   doc.setFont('helvetica', 'normal');
-  doc.text(COMPANY_INFO.tagline, 16, 28);
-  doc.text(COMPANY_INFO.address, 16, 34);
-  doc.text(`Tel: ${COMPANY_INFO.phonesDisplay} | Email: ${COMPANY_INFO.email}`, 16, 40);
+  doc.text(COMPANY_INFO.tagline, 43, 31);
+  doc.text(COMPANY_INFO.address, 43, 36.5);
+  doc.text(`Tel: ${COMPANY_INFO.phonesDisplay} | Email: ${COMPANY_INFO.email}`, 43, 42);
 
   if (rightBadgeText) {
+    const label = rightBadgeText.toUpperCase();
     const [r, g, b] = badgeColor || [234, 179, 8];
     doc.setFillColor(r, g, b);
     doc.roundedRect(148, 12, 46, 12, 2, 2, 'F');
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(10);
+    doc.setFontSize(label.length > 13 ? 8 : 9.5);
     doc.setFont('helvetica', 'bold');
-    doc.text(rightBadgeText.toUpperCase(), 171, 20, { align: 'center' });
+    doc.text(label, 171, 19.5, { align: 'center' });
   }
 };
 
@@ -92,7 +288,17 @@ const drawFooter = (doc: jsPDF) => {
 export const generateInvoicePDFDoc = (invoice: Invoice): jsPDF => {
   const doc = new jsPDF();
   const isPaid = invoice.status === 'paid';
-  drawCompanyHeader(doc, [11, 60, 93], invoice.status.toUpperCase(), isPaid ? [22, 163, 74] : [220, 38, 38]);
+  const isOverdue = invoice.status === 'overdue';
+  const headerBadgeText = isOverdue ? 'OFFICIAL INVOICE' : invoice.status.toUpperCase();
+  const headerBadgeColor: [number, number, number] = isPaid
+    ? [22, 163, 74]
+    : isOverdue
+    ? [31, 122, 140]
+    : invoice.status === 'partial'
+    ? [217, 119, 6]
+    : [31, 122, 140];
+
+  drawCompanyHeader(doc, [11, 60, 93], headerBadgeText, headerBadgeColor);
 
   // Invoice Info
   doc.setTextColor(0, 0, 0);
@@ -129,7 +335,7 @@ export const generateInvoicePDFDoc = (invoice: Invoice): jsPDF => {
   doc.setFont('helvetica', 'normal');
   y += 16;
   (invoice.items || []).forEach((item) => {
-    if (y > 245) {
+    if (y > 236) {
       doc.addPage();
       y = 24;
     }
@@ -142,6 +348,10 @@ export const generateInvoicePDFDoc = (invoice: Invoice): jsPDF => {
   });
 
   // Totals
+  if (y > 218) {
+    doc.addPage();
+    y = 24;
+  }
   y += 6;
   doc.setDrawColor(225, 230, 235);
   doc.line(16, y, 194, y);
@@ -171,6 +381,39 @@ export const generateInvoicePDFDoc = (invoice: Invoice): jsPDF => {
     doc.setTextColor(180, 0, 0);
     doc.text('Balance Due:', 152, y, { align: 'right' });
     doc.text(`GHC ${(invoice.remainingBalance ?? 0).toLocaleString()}`, 190, y, { align: 'right' });
+  }
+
+  // Overdue Card placed cleanly at the bottom of the invoice right above the footer
+  if (isOverdue) {
+    if (y > 236) {
+      doc.addPage();
+    }
+    const cardY = 244;
+    doc.setFillColor(254, 242, 242);
+    doc.setDrawColor(220, 38, 38);
+    doc.setLineWidth(0.5);
+    doc.roundedRect(16, cardY, 178, 17, 2.5, 2.5, 'FD');
+
+    doc.setFillColor(220, 38, 38);
+    doc.roundedRect(20, cardY + 3.5, 34, 10, 2, 2, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text('OVERDUE', 37, cardY + 10, { align: 'center' });
+
+    doc.setTextColor(153, 27, 27);
+    doc.setFontSize(9.5);
+    doc.setFont('helvetica', 'bold');
+    doc.text('PAYMENT OVERDUE — SETTLEMENT REQUIRED', 59, cardY + 7.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    const outstanding = invoice.remainingBalance ?? invoice.total ?? 0;
+    doc.text(
+      `Due Date: ${safeFormatDate(invoice.dueDate, 'PPP')}   |   Outstanding Balance: GHC ${outstanding.toLocaleString()}`,
+      59,
+      cardY + 13.5
+    );
+    doc.setLineWidth(0.2);
   }
 
   drawFooter(doc);
