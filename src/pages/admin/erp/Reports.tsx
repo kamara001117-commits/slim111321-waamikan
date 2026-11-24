@@ -144,13 +144,22 @@ const Reports = () => {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="hidden print:flex items-center justify-between border-b-2 border-[#0B3C5D] pb-4 mb-6">
-        <Logo className="h-14" />
-        <div className="text-right text-xs text-gray-600">
-          <p className="font-black text-[#0B3C5D] uppercase">{COMPANY_INFO.name}</p>
-          <p>{COMPANY_INFO.address}</p>
-          <p>{COMPANY_INFO.phonesDisplay} | {COMPANY_INFO.email}</p>
+    <div className="space-y-8 animate-in fade-in duration-500 relative">
+      <div
+        aria-hidden="true"
+        className="hidden print:flex pointer-events-none fixed inset-0 items-center justify-center z-0 opacity-[0.08]"
+      >
+        <Logo className="h-56" />
+      </div>
+
+      <div className="hidden print:flex items-center justify-between bg-[#0B3C5D] text-white p-5 rounded-2xl mb-6 relative z-10">
+        <Logo dark className="h-14" />
+        <div className="text-right text-xs">
+          <p className="font-black text-white uppercase">{COMPANY_INFO.name}</p>
+          <p className="text-blue-100">{COMPANY_INFO.address}</p>
+          <p className="font-bold text-[#FACC15]">
+            Tel: {COMPANY_INFO.phonesDisplay} | Email: {COMPANY_INFO.email}
+          </p>
         </div>
       </div>
 

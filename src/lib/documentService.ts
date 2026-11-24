@@ -1,4 +1,4 @@
-import { jsPDF } from 'jspdf';
+import { jsPDF, GState } from 'jspdf';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from './firebase';
 import { Invoice, Receipt, Product } from '../types';
@@ -236,7 +236,69 @@ const drawWaamikanLogoPDF = (doc: jsPDF, cx: number, cy: number, r: number) => {
   doc.setLineWidth(0.2);
 };
 
+const drawPageWatermarkPDF = (doc: jsPDF) => {
+  doc.saveGraphicsState();
+  doc.setGState(new GState({ opacity: 0.085, 'stroke-opacity': 0.085 }));
+
+  const cx = 105;
+  const cy = 152;
+  const r = 44;
+
+  // Outer precision medical ring
+  doc.setDrawColor(11, 60, 93);
+  doc.setLineWidth(1.8);
+  doc.circle(cx, cy, r * 1.15, 'S');
+
+  // Inner circle ring
+  doc.setDrawColor(31, 122, 140);
+  doc.setLineWidth(1.0);
+  doc.circle(cx, cy, r, 'S');
+
+  // Stylized 'W' matching Logo.tsx
+  const x1 = cx - r * 0.5;
+  const y1 = cy - r * 0.24;
+  const x2 = cx - r * 0.22;
+  const y2 = cy + r * 0.34;
+  const x3 = cx;
+  const y3 = cy - r * 0.04;
+  const x4 = cx + r * 0.22;
+  const y4 = cy + r * 0.34;
+  const x5 = cx + r * 0.5;
+  const y5 = cy - r * 0.24;
+
+  doc.setLineCap('round');
+  doc.setLineJoin('round');
+  doc.setLineWidth(r * 0.19);
+  doc.setDrawColor(11, 60, 93);
+  doc.line(x1, y1, x2, y2);
+  doc.line(x2, y2, x3, y3);
+  doc.line(x3, y3, x4, y4);
+  doc.line(x4, y4, x5, y5);
+
+  // Gold Imaging Beam chevron
+  doc.setDrawColor(234, 179, 8);
+  doc.line(x2, y2, x3, y3);
+  doc.line(x3, y3, x4, y4);
+
+  // Gold focal node dot
+  doc.setFillColor(234, 179, 8);
+  doc.circle(x3, y3, r * 0.11, 'F');
+
+  // Subtle brand wordmark beneath watermark emblem
+  doc.setTextColor(11, 60, 93);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(18);
+  doc.text('WAAMIKAN', cx, cy + r * 1.48, { align: 'center' });
+  doc.setTextColor(31, 122, 140);
+  doc.setFontSize(8.5);
+  doc.text('SUPPLY & IMAGING', cx, cy + r * 1.68, { align: 'center' });
+
+  doc.restoreGraphicsState();
+};
+
 const drawCompanyHeader = (doc: jsPDF, fillColor: [number, number, number], rightBadgeText?: string, badgeColor?: [number, number, number]) => {
+  drawPageWatermarkPDF(doc);
+
   doc.setFillColor(fillColor[0], fillColor[1], fillColor[2]);
   doc.rect(0, 0, 210, 52, 'F');
 
@@ -260,6 +322,9 @@ const drawCompanyHeader = (doc: jsPDF, fillColor: [number, number, number], righ
   doc.setFont('helvetica', 'normal');
   doc.text(COMPANY_INFO.tagline, 43, 31);
   doc.text(COMPANY_INFO.address, 43, 36.5);
+
+  doc.setTextColor(250, 204, 21);
+  doc.setFont('helvetica', 'bold');
   doc.text(`Tel: ${COMPANY_INFO.phonesDisplay} | Email: ${COMPANY_INFO.email}`, 43, 42);
 
   if (rightBadgeText) {
@@ -337,6 +402,7 @@ export const generateInvoicePDFDoc = (invoice: Invoice): jsPDF => {
   (invoice.items || []).forEach((item) => {
     if (y > 236) {
       doc.addPage();
+      drawPageWatermarkPDF(doc);
       y = 24;
     }
     const nameLines = doc.splitTextToSize(item.name || 'Supply Item', 88);
@@ -350,6 +416,7 @@ export const generateInvoicePDFDoc = (invoice: Invoice): jsPDF => {
   // Totals
   if (y > 218) {
     doc.addPage();
+    drawPageWatermarkPDF(doc);
     y = 24;
   }
   y += 6;
@@ -387,6 +454,7 @@ export const generateInvoicePDFDoc = (invoice: Invoice): jsPDF => {
   if (isOverdue) {
     if (y > 236) {
       doc.addPage();
+      drawPageWatermarkPDF(doc);
     }
     const cardY = 244;
     doc.setFillColor(254, 242, 242);
@@ -559,6 +627,7 @@ const generatePDFInternal = (type: string, data: any): jsPDF => {
   items.forEach((item: any) => {
     if (y > 245) {
       doc.addPage();
+      drawPageWatermarkPDF(doc);
       y = 24;
     }
     const desc = String(item.name || item.description || 'Item');
@@ -609,6 +678,7 @@ export const generateStockReportPDF = (products: Product[]) => {
   products.forEach((p) => {
     if (y > 255) {
       doc.addPage();
+      drawPageWatermarkPDF(doc);
       y = 24;
     }
     doc.text(String(p.sku || '-').slice(0, 16), 20, y);
